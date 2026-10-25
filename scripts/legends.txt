@@ -1,0 +1,370 @@
+91 - Hong Myung-Bo
+141 - Tsuyoshi Kitazawa
+163 - Shunsuke Nakamura
+231 - Antonis Nikopolidis
+284 - Damien Duff
+321 - Vincenzo Montella
+387 - Mark Hughes
+444 - Nuno Maniche
+557 - Park Ji-Sung
+608 - Raul González
+725 - Roy Keane
+729 - Robbie Keane
+793 - Ryan Giggs
+812 - Gary Neville
+815 - David Beckham
+816 - Paul Scholes
+817 - Michael Owen
+818 - Andy Cole
+820 - Rio Ferdinand
+822 - Steven Gerrard
+824 - S. McManaman
+826 - Joe Cole
+837 - Rui Costa
+840 - Luis Figo
+852 - Iker Casillas
+853 - Fernando Hierro
+855 - Sergi Barjuan
+857 - Pep Guardiola
+865 - Carles Puyol
+866 - Xavi Hernández
+875 - Marcel Desailly
+877 - Bixente Lizarazu
+878 - Lilian Thuram
+879 - Emmanuel Petit
+880 - Patrick Vieira
+881 - Thierry Henry
+882 - Youri Djorkaeff
+883 - Zinédine Zidane
+884 - Nicolas Anelka
+888 - Makelele
+892 - Ludovic Giuly
+893 - David Trézéguet
+919 - Jaap Stam
+920 - Frank de Boer
+923 - Edgar Davids
+924 - Phillip Cocu
+925 - Clarence Seedorf
+926 - Patrick Kluivert
+928 - Overmars
+934 - Ronald De Boer
+962 - Francesco Toldo
+963 - Paolo Maldini
+964 - Alessandro Nesta
+965 - F. Cannavaro
+967 - Demetrio Albertini
+970 - Francesco Totti
+971 - A. Del Piero
+972 - Filippo Inzaghi
+977 - Hernán Crespo
+978 - Gennaro Gattuso
+979 - Gianluca Zambrotta
+983 - Gianluigi Buffon
+990 - Pavel Nedvěd
+1001 - Tomas Rosický
+1006 - Oliver Kahn
+1010 - Michael Ballack
+1028 - P. Schmeichel
+1038 - Jon Dahl Tomasson
+1066 - John Arne Riise
+1080 - Henrik Larsson
+1096 - Sami Hyypiä
+1102 - Jari Litmanen
+1207 - Ali Daei
+1248 - Siniša Mihajlović
+1255 - Dejan Stanković
+1275 - Cristian Chivu
+1310 - Dimitar Berbatov
+1352 - Emre Belözoğlu
+1364 - John Barnes
+1365 - A. Shevchenko
+1366 - Bobby Charlton
+1405 - Berti Vogts
+1406 - Bernd Schuster
+1410 - Paul Breitner
+1414 - Muller
+1426 - Jürgen Klinsmann
+1447 - Alessandro Mazzola
+1460 - Rensenbrink
+1474 - Giacinto Facchetti
+1475 - Jay-Jay Okocha
+1476 - Kanu
+1487 - Tijani Babangida
+1498 - Samuel Eto'o
+1499 - Patrick M'Boma
+1509 - Emile Heskey
+1555 - Jorge Campos
+1600 - Iván Córdoba
+1621 - Dida
+1624 - Roberto Carlos
+1625 - Cafu
+1626 - Émerson
+1628 - Rivaldo
+1630 - Romário
+1631 - Ronaldinho G.
+1632 - Aldair
+1633 - Lucio
+1634 - Morientes
+1638 - Ze Roberto
+1653 - Claudio Pizarro
+1674 - Marcelo Salas
+1675 - Iván Zamorano
+1684 - O. Solskjaer
+1687 - Chilavert
+1691 - Francisco Arce
+1695 - Jimmy Hasselbaink
+1710 - Paolo Montero
+1718 - Álvaro Recoba
+1732 - Walter Samuel
+1733 - Roberto Ayala
+1735 - Diego Simeone
+1737 - Javier Zanetti
+1738 - Juan Veron
+1741 - G. Batistuta
+1745 - Matías Almeyda
+1747 - Pablo Aimar
+1754 - Hidetoshi Nakata
+1770 - Ahn Jung-Hwan
+1881 - Irwin
+1882 - Dwight Yorke
+1892 - Dennis Bergkamp
+1894 - Ashley Cole
+1910 - E. Gudjohnsen
+1913 - Jamie Carragher
+1938 - Michael Carrick
+1948 - Frank Lampard
+1957 - Alan Shearer
+1971 - Luis Enrique
+1981 - Guti Hernández
+2040 - George Weah
+2052 - Sylvain Distin
+2089 - R. van Der Vaart
+2120 - M. van Bommel
+2128 - Van Nistelrooy
+2131 - Laurent Blanc
+2137 - Ronaldo
+2138 - Andrea Pirlo
+2150 - Christian Abbiati
+2155 - Redondo
+2159 - Zvonimir Boban
+2210 - Jürgen Kohler
+2214 - Lars Ricken
+2250 - Helton
+2257 - Juninho P.
+2296 - Javier Saviola
+2311 - J. R. Riquelme
+2326 - Taffarel
+2329 - Sol Campbell
+2331 - L. Matthäus
+2334 - Dunga
+2337 - Gheorghe Hagi
+2339 - Valderrama
+2340 - Rái
+2344 - Roberto Baggio
+2345 - Antonio Cassano
+2349 - Hristo Stoichkov
+2379 - Ronald Koeman
+2380 - Frank Rijkaard
+2387 - M. Van Basten
+2388 - Ruud Gullit
+2397 - Johan Cruijff
+2404 - F. Beckenbauer
+2405 - K. Rummenigge
+2429 - Socrates
+2430 - Zico
+2453 - Diego Maradona
+2511 - Kakhaber Kaladze
+2520 - A. D'Alessandro
+2530 - D. Van Buyten
+2533 - M. Materazzi
+2560 - John Terry
+2579 - Gabriel Heinze
+2586 - Z. Ibrahimović
+2674 - Miroslav Klose
+2761 - Christian Vieri
+2808 - Franco Baresi
+2810 - Giuseppe Bergomi
+2827 - Bryan Robson
+2828 - Gary Lineker
+2829 - Kevin Keegan
+2840 - Kenny Dalglish
+2841 - Denis Law
+2843 - Ian Rush
+2920 - Santiago Solari
+2921 - Kily González
+2957 - Paolo Di Canio
+3050 - Fabio Grosso
+3191 - Petr Čech
+3214 - Eric Abidal
+3222 - M. Stekelenburg
+3239 - Bebeto
+3497 - Diego Forlán
+3522 - Jermain Defoe
+3577 - Johnny Heitinga
+3579 - Steven Pienaar
+3582 - R. Van Persie
+3603 - D. De Rossi
+3613 - Alou Diarra
+3649 - Savo Milosevic
+3681 - E. Cambiasso
+3682 - M. Demichelis
+3712 - Carlos Tévez
+3741 - Joaquín
+3758 - Kaka
+3806 - Djibril Cissé
+3958 - Camoranesi
+3997 - Arjen Robben
+4013 - Patrice Evra
+4071 - Thiago Motta
+4072 - Victor Valdes
+4152 - Wayne Rooney
+4193 - F. Coloccini
+4208 - Fernando Torres
+4251 - Xabi Alonso
+4261 - Philippe Mexès
+4280 - Hakan Sükür
+4347 - Luca Toni
+4414 - Sulley Muntari
+4494 - Tiago
+4498 - Ricardo Carvalho
+4502 - Deco
+4564 - Eusébio
+4569 - Roger Milla
+4582 - Garrincha
+4590 - Lev Yashin
+4598 - A. Di Natale
+4601 - Michael Laudrup
+4614 - George Best
+4637 - Sérgio Conceição
+4872 - Robert Huth
+4884 - Glen Johnson
+4918 - Wesley Sneijder
+4934 - Schweinsteiger
+5029 - Nemanja Vidic
+5537 - Andrea Barzagli
+5558 - D. Drogba
+5577 - Michael Essien
+5578 - Florent Malouda
+5717 - José Bosingwa
+5770 - Vincent Kompany
+5786 - Andrey Arshavin
+6194 - Khalid Boulahrouz
+6263 - Thomas Vermaelen
+6337 - Philipp Lahm
+6344 - Aleksandr Hleb
+6408 - P. Mertesacker
+6693 - Goran Pandev
+6772 - Diego Milito
+7056 - J. Mascherano
+7072 - Maicon
+7225 - Joleon Lescott
+7255 - M. Rodríguez
+7303 - Gabi
+7318 - Julio Baptista
+7444 - David Villa
+7834 - E. Adebayor
+7959 - Cesc Fàbregas
+7973 - J.Antonio Reyes
+8421 - K. Huntelaar
+8639 - Gerard Piqué
+8771 - Marco Storari
+8820 - Raul Meireles
+9129 - Franck Ribéry
+9317 - Arda Turan
+9341 - Mario Gómez
+30173 - Diego Lugano
+30189 - Valon Behrami
+30210 - Yaya Touré
+30235 - Gonzalo Castro
+30277 - Fernando Llorente
+31169 - M. Rosenberg
+32159 - Blaise Matuidi
+32339 - Nuri Şahin
+32395 - S. Lichtsteiner
+32462 - Lassana Diarra
+32493 - Ezequiel Lavezzi
+32586 - João Miranda
+32836 - Daniel Agger
+33237 - David Silva
+33328 - Júlio César
+33633 - Gonzalo Higuaín
+33643 - Mehdi Benatia
+33702 - Sergio Agüero
+33784 - Roberto Soldado
+33799 - Marek Hamšík
+33926 - Fredy Guarín
+34475 - Diego Godín
+34862 - Burak Yilmaz
+34982 - Claudio Marchisio
+35219 - Mehmet Topal
+35496 - Gareth Bale
+35878 - Lucas Leiva
+36764 - Aleksandar Kolarov
+36817 - M. Mandžukić
+37536 - Kwadwo Asamoah
+38240 - Mesut Özil
+38467 - Ricardo Rocha
+41419 - Matías Rodríguez
+63024 - Babayaro
+63025 - Nolberto Solano
+63026 - Ariel Ortega
+63027 - Claudio Lopez
+63030 - Denílson
+63730 - Diego
+63781 - Adriano
+65371 - Mikel Arteta
+66344 - Seaman
+66410 - Fabien Barthez
+66454 - Van Der Sar
+66549 - Sebastian Deisler
+66552 - Oliver Bierhoff
+67438 - Gianfranco Zola
+67521 - Canizares
+67525 - D. Deschamps
+67617 - Christophe Dugarry
+67704 - Dino Baggio
+67914 - Hans van Breukelen
+67927 - Ruud Krol
+67949 - Brehme
+67968 - Careca
+67975 - Pele
+68001 - Ubaldo Fillol
+68319 - Platini
+68321 - Eric Cantona
+68333 - Zoff
+68354 - Zenga
+68434 - Caniggia
+68603 - A. Di Stefano
+68740 - Puskas
+68743 - Hugo Sánchez
+72636 - René Higuita
+72655 - Brian Laudrup
+113368 - Karl-Heinz Riedle
+113369 - Michael Zorc
+113370 - Jan Koller
+113373 - Robbie Fowler
+115885 - Robert Pirès
+127091 - Daniele Massaro
+127092 - F. Ljungberg
+127093 - Diego Aguirre
+134838 - Junichi Inamoto
+136069 - Paul Gascoigne
+31909 - Toni Kroos
+50202 - Eden Hazard
+28003 - Lionel Messi
+8198 - Cristiano Ronaldo
+144028 - James Rodríguez
+88755 - Kevin De Bruyne
+44352 - Luis Suárez
+111455 - Isco
+49499 - Memphis Depay
+18922 - Karim Benzema
+68290 - Neymar
+27992 - Luka Modrić
+138927 - Dani Carvajal
+17259 - Manuel Neuer
+122153 - Paul Pogba
+38253 - Robert Lewandowski
+108390 - Thibaut Courtois
+121483 - Jan Oblak
+25557 - Sergio Ramos

@@ -1,0 +1,126 @@
+---
+---
+
+<header>
+  <a href="/"><img src="/logo.svg" class="logo" alt="Liga Picante Logo" /></a>
+
+  <div class="user-menu" id="userInfo" hidden>
+    <button type="button" class="user-trigger">
+      <span id="userName"></span>
+      <span class="arrow" aria-hidden="true">▾</span>
+    </button>
+
+    <nav class="dropdown">
+      <a href="/">Home</a>
+      <a href="/mi-equipo">Mi equipo</a>
+      <a href="/reglas">Reglas</a>
+      <button type="button" id="logoutBtn">Cerrar sesión</button>
+    </nav>
+  </div>
+</header>
+
+<script>
+  import { supabase } from "../lib/supabase.js";
+
+  const userInfo = document.getElementById("userInfo");
+  const userName = document.getElementById("userName");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  function render(session) {
+    if (session) {
+      userName.textContent =
+        session.user.user_metadata?.name || session.user.email;
+      userInfo.hidden = false;
+    } else {
+      userInfo.hidden = true;
+      userName.textContent = "";
+    }
+  }
+
+  supabase.auth.onAuthStateChange((_event, session) => render(session));
+
+  logoutBtn.addEventListener("click", () => supabase.auth.signOut());
+</script>
+
+<style>
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: 10rem;
+    padding-block: 1rem;
+  }
+  .logo {
+    height: 5em;
+  }
+
+  .user-menu {
+    position: relative;
+  }
+  .user-menu[hidden] {
+    display: none;
+  }
+
+  .user-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: none;
+    border: 1px solid var(--secondary-color);
+    border-radius: 0.5rem;
+    color: var(--main-color);
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 12rem;
+    padding-top: 0.5rem; /* puente para que no se cierre al mover el mouse */
+    display: none;
+    flex-direction: column;
+    z-index: 10;
+  }
+  .user-menu:hover .dropdown,
+  .user-menu:focus-within .dropdown {
+    display: flex;
+  }
+
+  .dropdown a,
+  .dropdown button {
+    padding: 0.75rem 1rem;
+    background: var(--bg-color);
+    border: 1px solid var(--secondary-color);
+    border-top: none;
+    color: white;
+    text-align: left;
+    text-decoration: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .dropdown > :first-child {
+    border-top: 1px solid var(--secondary-color);
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+  .dropdown > :last-child {
+    border-radius: 0 0 0.5rem 0.5rem;
+    color: var(--complementary-color);
+  }
+  .dropdown a:hover,
+  .dropdown button:hover {
+    background: var(--secondary-color);
+  }
+  @media (max-width: 768px) {
+    header {
+      padding-inline: 1rem;
+    }
+    .logo {
+      height: 3.5em;
+    }
+  }
+</style>

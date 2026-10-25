@@ -1,0 +1,1353 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const edades = [
+  { cat: "Menos de 17 años", tag: "Joven Promesa", mult: "1 pt = +5 de Media (1 base + 4 extra)", desgaste: "0 pts", tope: "+5 puntos de Media" },
+  { cat: "18 a 23 años", tag: "Promesa", mult: "1 pt = +3 de Media (1 base + 2 extra)", desgaste: "0 pts", tope: "+5 puntos de Media" },
+  { cat: "24 a 31 años", tag: "Prime", mult: "1 pt = +1 de Media", desgaste: "0 pts", tope: "+5 puntos de Media" },
+  { cat: "32 a 34 años", tag: "Veterano", mult: "1 pt = +1 de Media", desgaste: "-1 pt de Media", tope: "+3 puntos de Media (neto máximo: +2)" },
+  { cat: "35 años o más", tag: "Vieja Gloria", mult: "1 pt neutraliza la caída (-1)", desgaste: "-3 pts de Media", tope: "+0 (solo mantenimiento)" },
+  { cat: "Leyenda GOAT", tag: "", mult: "No recibe mejoras (forma perfecta)", desgaste: "0 pts", tope: "0 (estático)" },
+  { cat: "Leyenda Galáctico", tag: "", mult: "1 pt = +1 de Media", desgaste: "0 pts", tope: "+1 punto de Media" },
+  { cat: "Leyenda Héroe", tag: "", mult: "1 pt = +1 de Media", desgaste: "0 pts", tope: "+2 puntos de Media" },
+];
+
+const bono = [
+  { pos: "Último lugar", v: 50 },
+  { pos: "Penúltimo lugar", v: 45 },
+  { pos: "Antepenúltimo lugar", v: 40 },
+  { pos: "4° desde abajo", v: 35 },
+  { pos: "3° lugar", v: 30 },
+  { pos: "2° lugar", v: 20 },
+  { pos: "1° lugar", v: 0 },
+];
+
+const premiosColectivos = [
+  { pos: "1° lugar", dinero: "150M", pts: 10 },
+  { pos: "2° lugar", dinero: "100M", pts: 15 },
+  { pos: "3° lugar", dinero: "75M", pts: 7 },
+  { pos: "4° y 5° lugar", dinero: "50M", pts: 5 },
+  { pos: "Último lugar", dinero: "25M", pts: 15 },
+];
+
+const premiosIndividuales = [
+  { premio: "Balón de Oro", efecto: "+5 puntos de Media" },
+  { premio: "Máximo goleador", efecto: "+3 al 1°, +2 al 2°, +1 al 3°" },
+  { premio: "Máximo asistente", efecto: "+3 al 1°, +2 al 2°, +1 al 3°" },
+  { premio: "Mejor arquero (valla menos vencida)", efecto: "+3 puntos de Media" },
+  { premio: "11 ideal de la liga", efecto: "+1 punto de Media a cada jugador incluido" },
+];
+
+const tienda = [
+  { nombre: "Comodín de Rechazo Extra", cat: "Protección", costo: "25M", limite: "Máx. 2 (+2 gratis al inicio)", efecto: "Rechaza desafíos directos sin castigos ni regla de inversión." },
+  { nombre: "Comodín Anti-Sanciones / Lesiones", cat: "Gestión", costo: "25M", limite: "Máx. 3", efecto: "Habilita inmediatamente a un jugador suspendido o lesionado para la fecha." },
+  { nombre: "Escudo Financiero (Rescate)", cat: "Economía", costo: "50M", limite: "Máx. 1", efecto: "Evita la venta forzada con 25% de pérdida al cerrar la temporada en bancarrota." },
+  { nombre: "Ojo de Halcón (Scout)", cat: "Desarrollo", costo: "40M", limite: "Máx. 2", efecto: "Otorga +1 punto de mejora extra, exclusivo para Jóvenes Promesas (menores de 23 años)." },
+  { nombre: "Preparador Físico", cat: "Desarrollo", costo: "35M", limite: "Máx. 3", efecto: "Reduce en 1 punto la pérdida de media por edad de un Veterano (32 años o más)." },
+  { nombre: "Seguro de Penca", cat: "Apuestas", costo: "10M", limite: "Máx. 3", efecto: "Reembolsa el 50% de la apuesta de espectador si se falla el resultado (máx. 10M)." },
+  { nombre: "Multiplicador de Reto", cat: "Estrategia", costo: "20M", limite: "Máx. 2", efecto: "Duplica la recompensa económica del Reto de la Jornada si se completa." },
+];
+
+const retosTacticos = [
+  "Mantener la valla invicta",
+  "Terminar sin tarjetas",
+  "Más de 58% de posesión",
+  "Gol con un jugador menor de 23 años",
+];
+
+const retosEpicos = [
+  "Remontada heroica",
+  "Gol de tiro libre",
+  "Gol con un central o lateral",
+  "Gol de un suplente",
+  "Ganar por 3 goles o más",
+];
+
+const retosLocos = [
+  { nombre: "Cambio de Roles", desc: "Delantero de arquero y arquero de delantero durante 20 minutos.", premio: "35M" },
+  { nombre: "Chino Recoba", desc: "Gol olímpico.", premio: "50M" },
+  { nombre: "Lusail", desc: "Ganar con 2 o más expulsados.", premio: "50M" },
+  { nombre: "Rogério Ceni", desc: "Gol de tiro libre, penal o jugada con el arquero.", premio: "45M" },
+  { nombre: "Equipo B", desc: "Ganar alineando 11 suplentes.", premio: "40M" },
+  { nombre: "Fútbol Rústico", desc: "Ganar o empatar cometiendo 10 o más faltas.", premio: "30M" },
+  { nombre: "La Manita", desc: "Ganar exactamente 5-0.", premio: "45M" },
+  { nombre: "Messi", desc: "Ganar anotando solo goles de penal.", premio: "40M" },
+  { nombre: "CR7 (hat-trick perfecto)", desc: "Gol de zurda, de derecha y de cabeza con el mismo jugador.", premio: "60M o +1 punto de mejora directo" },
+];
+---
+
+<Layout title="Reglamento">
+  <div class="docs">
+    <aside class="docs-aside" id="docAside">
+      <nav aria-label="Secciones del reglamento">
+        <ul id="docNavList"></ul>
+      </nav>
+    </aside>
+
+    <main class="doc">
+      <header class="hero">
+        <h1>Reglamento oficial</h1>
+        <p class="lead">
+          Cómo se arman las plantillas, cómo funciona el mercado y qué se gana
+          o se pierde durante la temporada.
+        </p>
+        <ul class="meta">
+          <li>Liga PES 2021</li>
+          <li>Versión 1.0</li>
+        </ul>
+      </header>
+
+      <nav class="mnav" id="docMobileNav" aria-label="Secciones del reglamento"></nav>
+
+      <div class="docsearch">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          id="docSearch"
+          type="search"
+          placeholder="Buscar en el reglamento"
+          aria-label="Buscar en el reglamento"
+          autocomplete="off"
+        />
+        <kbd>/</kbd>
+      </div>
+      <p class="empty" id="docEmpty" hidden>
+        Ninguna sección coincide con tu búsqueda. Probá con otra palabra.
+      </p>
+
+      <aside class="essentials">
+        <p class="box-title">Lo esencial</p>
+        <ul>
+          <li>Cada club arranca con 500M y arma su plantilla desde cero en la subasta inicial.</li>
+          <li>La plantilla tiene entre 22 y 40 jugadores, más una Leyenda gratis como capitán.</li>
+          <li>Una oferta en los últimos 2 minutos de una subasta la extiende 3 minutos más.</li>
+          <li>Ganar una puja sin saldo suficiente se castiga con pérdida del jugador o puntos de liga.</li>
+          <li>Al cerrar la temporada el saldo debe ser 0 o más; si no, hay que vender jugadores.</li>
+        </ul>
+      </aside>
+
+      <article id="docContent">
+        <!-- 1 -->
+        <section class="doc-section">
+          <h2 id="configuracion" data-nav="Configuración inicial" data-num="1">
+            <span class="num">1</span>Configuración inicial y plantillas
+          </h2>
+
+          <h3 id="plantillas">Presupuesto y plantilla</h3>
+          <div class="facts">
+            <div><strong>500M</strong><span>Presupuesto inicial de cada club</span></div>
+            <div><strong>22</strong><span>Mínimo de jugadores</span></div>
+            <div><strong>40</strong><span>Máximo de jugadores</span></div>
+          </div>
+          <p>
+            No hay una plantilla base predeterminada. Las plantillas se
+            construyen desde cero a través de la subasta inicial.
+          </p>
+
+          <h3 id="leyenda">Capitán Leyenda gratis</h3>
+          <p>Cada DT elige una Leyenda de forma gratuita.</p>
+          <div class="callout verde">
+            <h4>Norma de honor</h4>
+            <p>
+              La elección se hace por afinidad futbolística o afectiva, no para
+              romper el equilibrio del juego. La Leyenda se puede cambiar al
+              finalizar cada temporada.
+            </p>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section class="doc-section">
+          <h2 id="mercado" data-nav="Mercado y subastas" data-num="2">
+            <span class="num">2</span>Sistema de mercado y subastas
+          </h2>
+
+          <h3 id="subasta">A. Subasta abierta inicial</h3>
+          <p>Los fichajes se realizan mediante subasta pública en la App.</p>
+          <div class="callout amarilla">
+            <h4>Anti-sniping</h4>
+            <p>
+              Toda oferta realizada dentro de los últimos 2 minutos del cierre
+              de un jugador extiende el contador 3 minutos adicionales, de forma
+              continua, hasta que cesen las pujas.
+            </p>
+          </div>
+
+          <h3 id="traspasos">B. Traspasos directos e intercambios</h3>
+          <p>
+            Para vender o intercambiar, un DT publica a su jugador indicando el
+            valor mínimo o las condiciones que busca.
+          </p>
+          <div class="callout amarilla">
+            <h4>Veto de la liga (Comité)</h4>
+            <p>
+              Para prevenir colusiones o acuerdos desproporcionados, cualquier
+              traspaso directo puede someterse a votación. Si 3 o más DTs votan
+              en contra, el traspaso queda anulado automáticamente.
+            </p>
+          </div>
+
+          <h3 id="sobrepresupuesto">C. Sanciones por sobrepresupuesto</h3>
+          <div class="callout roja">
+            <h4>Si un equipo gana una puja superando su saldo disponible</h4>
+            <ul>
+              <li>
+                Pierde la adjudicación del jugador. La segunda oferta más alta
+                elige si se lo queda o lo libera al mercado general.
+              </li>
+              <li>
+                Si no había más competidores, el infractor conserva al jugador,
+                pero recibe un castigo de -3 puntos en la tabla de liga por cada
+                10M de exceso.
+              </li>
+              <li>El club queda suspendido por 1 ventana de fichajes completa.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 3 -->
+        <section class="doc-section">
+          <h2 id="edades" data-nav="Edad y progresión" data-num="3">
+            <span class="num">3</span>Progresión y desgaste por edad
+          </h2>
+          <p>
+            El desarrollo y el envejecimiento de los futbolistas se gestionan
+            mediante rangos de edad y categorías especiales.
+          </p>
+
+          <h3 id="tabla-edades">Categorías</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rango o categoría</th>
+                  <th>Multiplicador por punto invertido</th>
+                  <th>Desgaste anual (pretemporada)</th>
+                  <th>Límite máximo de mejora anual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {
+                  edades.map((e) => (
+                    <tr>
+                      <td>
+                        <strong>{e.cat}</strong>
+                        {e.tag && <small>{e.tag}</small>}
+                      </td>
+                      <td>{e.mult}</td>
+                      <td>{e.desgaste}</td>
+                      <td>{e.tope}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="reglas-edad">Reglas de aplicación</h3>
+          <ul class="rules">
+            <li>
+              <strong>Pérdida por edad.</strong> Se aplica automáticamente al
+              inicio de cada pretemporada, antes de repartir mejoras.
+            </li>
+            <li>
+              <strong>Revalúo en el mercado.</strong> Por cada +1 punto de Media
+              de incremento efectivo, el valor de mercado del jugador en la App
+              sube 10 millones. Por cada punto perdido, baja 10 millones.
+            </li>
+          </ul>
+        </section>
+
+        <!-- 4 -->
+        <section class="doc-section">
+          <h2 id="competencias" data-nav="Competencias" data-num="4">
+            <span class="num">4</span>Estructura de competencias
+          </h2>
+
+          <h3 id="liga">A. Liga principal</h3>
+          <p>Todos contra todos, con partidos de ida y vuelta.</p>
+          <ol class="timeline">
+            <li>
+              <strong>Primera vuelta (Apertura)</strong>
+              <span>Se disputan las fechas de la primera mitad del calendario.</span>
+            </li>
+            <li>
+              <strong>Ventana invernal (mitad de temporada)</strong>
+              <span>
+                Se abre el mercado de transferencias e intercambios y se reparte
+                el bono de equiparación.
+              </span>
+            </li>
+            <li>
+              <strong>Segunda vuelta (Clausura)</strong>
+              <span>Se disputan los partidos de vuelta.</span>
+            </li>
+          </ol>
+
+          <h3 id="bono">Bono de equiparación (catch-up)</h3>
+          <p>
+            El último lugar de la tabla recibe 50M. El bono decrece de forma
+            proporcional hasta el primer lugar, que recibe el mínimo.
+          </p>
+          <div class="bars" role="list">
+            {
+              bono.map((b) => (
+                <div class="bar" role="listitem">
+                  <span>{b.pos}</span>
+                  <div class="track">
+                    <i style={`--w:${b.v * 2}%`} />
+                  </div>
+                  <b>{b.v}M</b>
+                </div>
+              ))
+            }
+          </div>
+
+          <h3 id="copa">B. Copa de la Liga</h3>
+          <p>
+            Torneo paralelo de eliminación directa. Se juega en la segunda mitad
+            de la temporada.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Puesto</th><th>Premio</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Campeón</td>
+                  <td>100M + 5 puntos de mejora para la plantilla + 1 comodín de rechazo extra</td>
+                </tr>
+                <tr>
+                  <td>Subcampeón</td>
+                  <td>50M + 3 puntos de mejora para la plantilla</td>
+                </tr>
+                <tr>
+                  <td>Semifinalistas</td>
+                  <td>25M a cada uno</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout roja">
+            <h4>Penalizaciones de Copa</h4>
+            <ul>
+              <li>
+                <strong>Multa por papelón.</strong> El equipo eliminado en 1ª
+                ronda con la peor diferencia de gol recibe una multa
+                institucional de 15M.
+              </li>
+              <li>
+                <strong>Sanción de tienda.</strong> El peor clasificado de la
+                Copa no puede comprar en la Tienda durante la siguiente ventana
+                de transferencias.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 5 -->
+        <section class="doc-section">
+          <h2 id="premios" data-nav="Premios y stats" data-num="5">
+            <span class="num">5</span>Recompensas de fin de temporada y ajuste de stats
+          </h2>
+
+          <h3 id="premios-colectivos">A. Premios colectivos (posición en liga)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Posición</th><th>Dinero</th><th>Puntos de mejora</th></tr>
+              </thead>
+              <tbody>
+                {
+                  premiosColectivos.map((p) => (
+                    <tr>
+                      <td>{p.pos}</td>
+                      <td>{p.dinero}</td>
+                      <td>{p.pts}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="premios-individuales">B. Premios individuales</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Premio</th><th>Efecto</th></tr>
+              </thead>
+              <tbody>
+                {
+                  premiosIndividuales.map((p) => (
+                    <tr>
+                      <td>{p.premio}</td>
+                      <td>{p.efecto}</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="desmejoras">C. Desmejoras de rendimiento</h3>
+          <p>
+            Se resta 3 puntos de Media a los jugadores y equipos reconocidos
+            negativamente:
+          </p>
+          <ul class="rules">
+            <li>Jugador decepción o de peor rendimiento.</li>
+            <li>Jugador o equipo más indisciplinado (tarjetas acumuladas en Liga y Copa).</li>
+            <li>Arquero más goleado.</li>
+          </ul>
+
+          <h3 id="topes">Topes de stats</h3>
+          <div class="callout amarilla">
+            <h4>Cláusulas de seguridad</h4>
+            <ul>
+              <li>
+                <strong>Límite absoluto.</strong> Ningún jugador puede subir más
+                de +5 de Media global por temporada.
+              </li>
+              <li>
+                <strong>Límite por plantilla.</strong> Máximo +3 de Media por
+                jugador al distribuir los puntos ganados por la posición
+                colectiva del equipo.
+              </li>
+              <li>
+                <strong>Bloqueo a premiados.</strong> Un jugador que recibió un
+                premio individual (goleador, Balón de Oro, 11 ideal, etc.) no
+                puede recibir puntos de mejora adicionales del pozo colectivo de
+                su equipo.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 6 -->
+        <section class="doc-section">
+          <h2 id="apuestas" data-nav="Desafíos y apuestas" data-num="6">
+            <span class="num">6</span>Partidos de apuesta y desafíos directos
+          </h2>
+
+          <h3 id="desafio">A. Desafío público e inversión</h3>
+          <p>
+            Todo reto o desafío directo se registra públicamente en la App para
+            la revisión del Comité.
+          </p>
+          <div class="callout amarilla">
+            <h4>El tiro por la culata</h4>
+            <p>Si el desafío se considera desproporcionado o desleal:</p>
+            <ul>
+              <li>El retado puede rechazarlo libremente.</li>
+              <li>
+                Un tercer equipo (Equipo C) puede intervenir e invertir las
+                condiciones del desafío contra el retador original (Equipo A),
+                que debe jugar el reto en desventaja contra el Equipo C.
+              </li>
+            </ul>
+          </div>
+
+          <h3 id="limites-apuesta">B. Límites de apuesta</h3>
+          <p>
+            El máximo permitido por reto es de 3 puntos de liga y hasta el 20%
+            del presupuesto actual del club.
+          </p>
+        </section>
+
+        <!-- 7 -->
+        <section class="doc-section">
+          <h2 id="tienda" data-nav="Tienda" data-num="7">
+            <span class="num">7</span>Tienda de la liga
+          </h2>
+          <p>
+            Los ítems se compran con dinero del presupuesto y tienen límites
+            estrictos de uso por temporada.
+          </p>
+          <ul class="shop">
+            {
+              tienda.map((t) => (
+                <li class="item">
+                  <header>
+                    <h4>{t.nombre}</h4>
+                    <span class="price">{t.costo}</span>
+                  </header>
+                  <span class="tag">{t.cat}</span>
+                  <p>{t.efecto}</p>
+                  <span class="limit">{t.limite} por temporada</span>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        <!-- 8 -->
+        <section class="doc-section">
+          <h2 id="retos" data-nav="Retos de la jornada" data-num="8">
+            <span class="num">8</span>Retos de la jornada
+          </h2>
+          <p>
+            Al comienzo de cada fecha, la App sortea un reto aleatorio. El DT
+            que cumple la condición en su partido oficial de liga elige como
+            premio el dinero en efectivo o el ítem de la Tienda asociado.
+          </p>
+
+          <div class="reto-head">
+            <h3 id="reto-tacticos">Retos tácticos</h3>
+            <span class="reward">15M a 20M</span>
+          </div>
+          <ul class="tags">
+            {retosTacticos.map((r) => <li>{r}</li>)}
+          </ul>
+
+          <div class="reto-head">
+            <h3 id="reto-epicos">Retos épicos</h3>
+            <span class="reward">25M a 40M</span>
+          </div>
+          <ul class="tags">
+            {retosEpicos.map((r) => <li>{r}</li>)}
+          </ul>
+
+          <div class="reto-head">
+            <h3 id="reto-locos">Retos locos</h3>
+            <span class="reward">30M a 60M</span>
+          </div>
+          <ul class="locos">
+            {
+              retosLocos.map((r) => (
+                <li class="loco">
+                  <strong>{r.nombre}</strong>
+                  <span>{r.desc}</span>
+                  <b class="reward">{r.premio}</b>
+                </li>
+              ))
+            }
+          </ul>
+        </section>
+
+        <!-- 9 -->
+        <section class="doc-section">
+          <h2 id="penca" data-nav="Penca y Gran Bolsa" data-num="9">
+            <span class="num">9</span>Espectadores, penca y Gran Bolsa
+          </h2>
+
+          <h3 id="apuesta-obligatoria">Apuesta obligatoria</h3>
+          <p>
+            Los DTs que no juegan en una jornada deben apostar entre 5M y 20M en
+            los partidos de sus compañeros.
+          </p>
+          <div class="callout amarilla">
+            <h4>Multa por inactividad</h4>
+            <p>
+              No registrar una apuesta en la fecha acarrea una multa automática
+              de 2M.
+            </p>
+          </div>
+
+          <h3 id="pozo">Distribución del pozo</h3>
+          <ul class="rules">
+            <li>
+              Quienes aciertan el ganador se reparten el pozo del partido de
+              forma proporcional.
+            </li>
+            <li>
+              Si nadie acierta, los fondos van a la Gran Bolsa Acumulada.
+            </li>
+            <li>
+              Quien acierta un resultado exacto se lleva la Gran Bolsa
+              Acumulada. Si hay varios ganadores, se divide en partes iguales.
+            </li>
+          </ul>
+        </section>
+
+        <!-- 10 -->
+        <section class="doc-section">
+          <h2 id="finanzas" data-nav="Finanzas y deuda" data-num="10">
+            <span class="num">10</span>Salud financiera y liquidación de deuda
+          </h2>
+
+          <h3 id="cierre">Cierre financiero obligatorio</h3>
+          <p>
+            Un club puede operar con saldo negativo durante la temporada
+            (bancarrota temporal). Al finalizar la temporada, el saldo final
+            debe ser 0 o más.
+          </p>
+          <p>
+            Si un club termina en negativo, debe vender jugadores a otros DTs
+            para pagar su deuda.
+          </p>
+
+          <h3 id="venta-forzada">Venta forzada</h3>
+          <div class="callout roja">
+            <h4>Si ningún DT compra sus fichas</h4>
+            <p>
+              El sistema ejecuta una venta forzada a la Casa de Subastas de la
+              App, con un descuento del 25% sobre el valor base del jugador,
+              hasta saldar la deuda por completo. El club evita esta penalidad
+              si usa un Escudo Financiero.
+            </p>
+          </div>
+        </section>
+      </article>
+    </main>
+  </div>
+</Layout>
+
+<script>
+  const article = document.getElementById("docContent");
+  const aside = document.getElementById("docAside");
+  const navList = document.getElementById("docNavList");
+  const mnav = document.getElementById("docMobileNav");
+  const search = document.getElementById("docSearch");
+  const empty = document.getElementById("docEmpty");
+
+  const heads = [...article.querySelectorAll("h2[id], h3[id]")];
+  const links = new Map(); // id -> [enlace del menú lateral, chip móvil]
+
+  // Menú lateral y chips móviles, generados desde los títulos de la página
+  let sub = null;
+  for (const h of heads) {
+    const label = h.dataset.nav || h.textContent.trim();
+    const a = document.createElement("a");
+    a.href = `#${h.id}`;
+    const li = document.createElement("li");
+
+    if (h.tagName === "H2") {
+      li.className = "l2";
+      const n = document.createElement("span");
+      n.className = "n";
+      n.textContent = h.dataset.num;
+      a.append(n, label);
+      sub = document.createElement("ul");
+      li.append(a, sub);
+      navList.append(li);
+
+      const chip = document.createElement("a");
+      chip.href = `#${h.id}`;
+      chip.textContent = `${h.dataset.num}. ${label}`;
+      mnav.append(chip);
+      links.set(h.id, [a, chip]);
+    } else {
+      li.className = "l3";
+      a.textContent = label;
+      li.append(a);
+      sub.append(li);
+      links.set(h.id, [a]);
+    }
+  }
+
+  // Enlace directo a cada título
+  for (const h of heads) {
+    const a = document.createElement("a");
+    a.className = "anchor";
+    a.href = `#${h.id}`;
+    a.textContent = "#";
+    a.setAttribute("aria-label", "Enlace a esta sección");
+    h.append(a);
+  }
+
+  // Sección activa al hacer scroll
+  let current = null;
+  function setActive(id) {
+    if (current === id) return;
+    current = id;
+
+    document.querySelectorAll(".docs a.active").forEach((el) => el.classList.remove("active"));
+    document.querySelectorAll(".docs li.open").forEach((el) => el.classList.remove("open"));
+
+    const [side] = links.get(id) ?? [];
+    side?.classList.add("active");
+    side?.closest("li.l2")?.classList.add("open");
+
+    const parentId = document
+      .getElementById(id)
+      .closest(".doc-section")
+      .querySelector("h2").id;
+    const chip = links.get(parentId)?.[1];
+    chip?.classList.add("active");
+
+    if (chip && mnav.offsetParent) {
+      mnav.scrollLeft = chip.offsetLeft - mnav.clientWidth / 2 + chip.clientWidth / 2;
+    }
+    if (side && aside.offsetParent) {
+      const ar = aside.getBoundingClientRect();
+      const r = side.getBoundingClientRect();
+      if (r.top < ar.top + 40 || r.bottom > ar.bottom - 40) {
+        aside.scrollTop += r.top - ar.top - ar.height / 3;
+      }
+    }
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.filter((e) => e.isIntersecting).forEach((e) => setActive(e.target.id));
+    },
+    { rootMargin: "-10% 0px -80% 0px" },
+  );
+  heads.forEach((h) => io.observe(h));
+  setActive(heads[0].id);
+
+  // Buscador: oculta las secciones que no contienen el texto
+  const norm = (s) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const sections = [...article.querySelectorAll(".doc-section")];
+  const texts = new Map(sections.map((s) => [s, norm(s.textContent)]));
+
+  search.addEventListener("input", () => {
+    const q = norm(search.value.trim());
+    let shown = 0;
+    for (const s of sections) {
+      const ok = !q || texts.get(s).includes(q);
+      s.hidden = !ok;
+      if (ok) shown++;
+      const [side, chip] = links.get(s.querySelector("h2").id);
+      side.closest("li.l2").hidden = !ok;
+      chip.hidden = !ok;
+    }
+    empty.hidden = shown !== 0;
+  });
+
+  // Atajo: "/" enfoca el buscador
+  addEventListener("keydown", (e) => {
+    const tag = document.activeElement?.tagName;
+    if (e.key === "/" && tag !== "INPUT" && tag !== "TEXTAREA") {
+      e.preventDefault();
+      search.focus();
+    }
+  });
+</script>
+
+<style>
+  .docs {
+    /* Si tu header queda fijo arriba, subí este valor (por ejemplo 6rem) */
+    --docs-offset: 1.5rem;
+    --green: var(--main-color, #26e200);
+    --red: var(--complementary-color, #ff4d3d);
+    --yellow: #f2c230;
+    --line: var(--secondary-color, #2d4a33);
+    --ink: rgb(255 255 255 / 0.92);
+    --ink-soft: rgb(255 255 255 / 0.66);
+
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem;
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 3.5rem;
+    color: var(--ink);
+  }
+
+  .docs a:focus-visible,
+  .docs input:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+  }
+
+  .doc {
+    min-width: 0;
+    max-width: 48rem;
+  }
+
+  /* Menú lateral */
+  .docs-aside {
+    position: sticky;
+    top: var(--docs-offset);
+    align-self: start;
+    max-height: calc(100vh - var(--docs-offset) - 1.5rem);
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    scrollbar-width: thin;
+  }
+  .docs-aside :global(ul) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .docs-aside :global(a) {
+    display: block;
+    padding: 0.4rem 0.75rem;
+    border-left: 2px solid transparent;
+    border-radius: 0 0.35rem 0.35rem 0;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 0.93rem;
+    line-height: 1.35;
+  }
+  .docs-aside :global(a:hover) {
+    color: #fff;
+    background: rgb(255 255 255 / 0.05);
+  }
+  .docs-aside :global(a.active) {
+    color: var(--green);
+    border-left-color: var(--green);
+    background: color-mix(in srgb, var(--green) 10%, transparent);
+    font-weight: 600;
+  }
+  .docs-aside :global(.n) {
+    display: inline-block;
+    min-width: 1.4rem;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+  .docs-aside :global(li.l2 > ul) {
+    display: none;
+    margin: 0.1rem 0 0.4rem 0.75rem;
+    border-left: 1px solid var(--line);
+  }
+  .docs-aside :global(li.l2.open > ul) {
+    display: block;
+  }
+  .docs-aside :global(li.l3 a) {
+    font-size: 0.88rem;
+    padding-left: 0.9rem;
+  }
+  .docs-aside :global(li[hidden]) {
+    display: none;
+  }
+
+  /* Menú móvil */
+  .mnav {
+    display: none;
+  }
+
+  /* Portada */
+  h1 {
+    margin: 0;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+  }
+  .lead {
+    max-width: 36rem;
+    margin: 1rem 0 1.25rem;
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 2rem;
+    padding: 0;
+    list-style: none;
+  }
+  .meta li {
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+
+  /* Buscador */
+  .docsearch {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    color: var(--green);
+  }
+  .docsearch:focus-within {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 25%, transparent);
+  }
+  .docsearch svg {
+    width: 1.2rem;
+    height: 1.2rem;
+    flex-shrink: 0;
+  }
+  .docsearch input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 0.95rem;
+  }
+  .docsearch input::placeholder {
+    color: var(--ink-soft);
+  }
+  .docsearch kbd {
+    padding: 0.05rem 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+  }
+  .empty {
+    margin: 1.5rem 0 0;
+    color: var(--ink-soft);
+  }
+
+  /* Resumen */
+  .essentials {
+    margin: 2rem 0 3rem;
+    padding: 1.25rem 1.5rem;
+    border-left: 3px solid var(--green);
+    background: rgb(255 255 255 / 0.04);
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  .box-title {
+    margin: 0 0 0.6rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .essentials ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.4rem;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .essentials li::marker {
+    color: var(--green);
+  }
+
+  /* Contenido */
+  .doc-section + .doc-section {
+    margin-top: 4rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--line);
+  }
+  .doc-section[hidden] {
+    display: none;
+  }
+  h2,
+  h3 {
+    scroll-margin-top: calc(var(--docs-offset) + 1rem);
+  }
+  h2 {
+    margin: 0 0 1rem;
+    font-size: 1.8rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .num {
+    margin-right: 0.75rem;
+    color: var(--green);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  h3 {
+    margin: 2.25rem 0 0.6rem;
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+  h2 :global(.anchor),
+  h3 :global(.anchor) {
+    margin-left: 0.5rem;
+    color: var(--green);
+    font-weight: 400;
+    text-decoration: none;
+    opacity: 0;
+  }
+  h2:hover :global(.anchor),
+  h3:hover :global(.anchor),
+  :global(.anchor:focus-visible) {
+    opacity: 0.8;
+  }
+  p {
+    margin: 0.6rem 0;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+  .rules {
+    margin: 0.75rem 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.6rem;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .rules li::marker {
+    color: var(--green);
+  }
+  .rules strong {
+    color: var(--ink);
+  }
+
+  /* Cifras */
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+  }
+  .facts div {
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+  }
+  .facts strong {
+    display: block;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .facts span {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+
+  /* Tarjetas de aviso */
+  .callout {
+    --tone: var(--green);
+    position: relative;
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem 1rem 3.4rem;
+    border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--tone) 8%, transparent);
+  }
+  .callout.amarilla {
+    --tone: var(--yellow);
+  }
+  .callout.roja {
+    --tone: var(--red);
+  }
+  .callout::before {
+    content: "";
+    position: absolute;
+    left: 1.15rem;
+    top: 1.15rem;
+    width: 0.95rem;
+    height: 1.3rem;
+    border-radius: 0.18rem;
+    background: var(--tone);
+    transform: rotate(-8deg);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
+  }
+  .callout h4 {
+    margin: 0 0 0.3rem;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  .callout p {
+    margin: 0.3rem 0 0;
+  }
+  .callout ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.5rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .callout li::marker {
+    color: var(--tone);
+  }
+  .callout strong {
+    color: var(--ink);
+  }
+
+  /* Tablas */
+  .table-wrap {
+    margin: 1.25rem 0;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+  }
+  table {
+    width: 100%;
+    min-width: 30rem;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  th,
+  td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+    line-height: 1.5;
+  }
+  th {
+    background: rgb(255 255 255 / 0.05);
+    font-weight: 600;
+    color: var(--ink);
+  }
+  tr:last-child td {
+    border-bottom: 0;
+  }
+  td {
+    color: var(--ink-soft);
+  }
+  td:first-child {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  td small {
+    display: block;
+    margin-top: 0.15rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  /* Línea de tiempo */
+  .timeline {
+    list-style: none;
+    margin: 1.25rem 0;
+    padding: 0 0 0 1.75rem;
+    border-left: 2px solid var(--line);
+    display: grid;
+    gap: 1.5rem;
+  }
+  .timeline li {
+    position: relative;
+  }
+  .timeline li::before {
+    content: "";
+    position: absolute;
+    left: calc(-1.75rem - 7px);
+    top: 0.3rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    background: var(--bg-color, #000);
+  }
+  .timeline strong {
+    display: block;
+    color: var(--ink);
+  }
+  .timeline span {
+    display: block;
+    margin-top: 0.2rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  /* Barras del bono */
+  .bars {
+    display: grid;
+    gap: 0.6rem;
+    margin: 1.25rem 0;
+  }
+  .bar {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr) 3.5rem;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .bar span {
+    color: var(--ink-soft);
+  }
+  .bar .track {
+    height: 0.6rem;
+    border-radius: 99px;
+    background: rgb(255 255 255 / 0.08);
+    overflow: hidden;
+  }
+  .bar i {
+    display: block;
+    width: var(--w);
+    height: 100%;
+    border-radius: 99px;
+    background: var(--green);
+  }
+  .bar b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tienda */
+  .shop {
+    list-style: none;
+    margin: 1.25rem 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1rem;
+  }
+  .item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+  }
+  .item header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .item h4 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+  .price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+  }
+  .tag {
+    width: fit-content;
+    padding: 0.1rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+  .item p {
+    margin: 0;
+    font-size: 0.93rem;
+    line-height: 1.55;
+  }
+  .limit {
+    margin-top: auto;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+
+  /* Retos */
+  .reto-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+  }
+  .reward {
+    color: var(--green);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tags li {
+    padding: 0.3rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+  .locos {
+    margin: 0.75rem 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  .loco {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: baseline;
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .loco:last-child {
+    border-bottom: 0;
+  }
+  .loco span {
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .loco .reward {
+    text-align: right;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (hover: none) {
+    .docsearch kbd {
+      display: none;
+    }
+  }
+
+  @media (max-width: 62rem) {
+    .docs {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      padding-inline: 1.25rem;
+    }
+    .docs-aside {
+      display: none;
+    }
+    .mnav {
+      display: flex;
+      gap: 0.5rem;
+      position: sticky;
+      top: var(--docs-offset);
+      z-index: 5;
+      margin: 0 0 1rem;
+      padding: 0.6rem 0;
+      overflow-x: auto;
+      background: var(--bg-color, #000);
+      border-bottom: 1px solid var(--line);
+      scrollbar-width: none;
+    }
+    .mnav :global(a) {
+      flex-shrink: 0;
+      padding: 0.35rem 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      color: var(--ink-soft);
+      font-size: 0.88rem;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .mnav :global(a.active) {
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .mnav :global(a[hidden]) {
+      display: none;
+    }
+    h2,
+    h3 {
+      scroll-margin-top: calc(var(--docs-offset) + 4.5rem);
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .bar {
+      grid-template-columns: 7.5rem minmax(0, 1fr) 3rem;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+    }
+    .loco {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .loco span {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+</style>
