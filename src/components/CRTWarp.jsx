@@ -404,7 +404,7 @@ export default function CRTWarp({
   intro = true,
   mouseReact = true,
   mouseStrength = 0.5,
-  changeOnClick = true,
+  changeOnClick = false,
   dpr = 2,
   fps = 60,
   paused = false,
