@@ -1,0 +1,443 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Ruleta de retos | Liga Picante">
+  <section class="ruleta-page">
+    <h1 id="stageTitle">Ruleta de la jornada</h1>
+    <p class="stage-sub" id="stageSub">
+      Primero se sortea el tipo de reto
+    </p>
+
+    <div class="wheel-box" id="wheelBox">
+      <div class="pointer" aria-hidden="true"></div>
+      <div class="wheel" id="wheel"></div>
+      <div class="hub" aria-hidden="true"></div>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="spinBtn" class="btn-main">Girar</button>
+      <button type="button" id="resetBtn" class="btn-ghost" hidden>
+        Nueva jornada
+      </button>
+    </div>
+
+    <div class="result" id="result" aria-live="polite" hidden>
+      <p class="result-cat" id="resultCat"></p>
+      <h2 id="resultName"></h2>
+      <p class="result-desc" id="resultDesc"></p>
+      <p class="result-prize" id="resultPrize"></p>
+    </div>
+
+    <a href="/" class="back">Volver al mercado</a>
+  </section>
+  <div class="blur"></div>
+  <div class="blur2"></div>
+</Layout>
+
+<script>
+  // ───────── Datos (según el reglamento) ─────────
+  const CATEGORIES = [
+    { id: "none", label: "Sin reto", color: "#7a130c", text: "#ff5a4a" },
+    { id: "loco", label: "Reto loco", color: "#6be040", text: "#1f4d12" },
+    { id: "epic", label: "Reto épico", color: "#4fc22e", text: "#12360a" },
+    { id: "tactic", label: "Reto táctico", color: "#6be040", text: "#1f4d12" },
+  ];
+
+  const CHALLENGES = {
+    tactic: {
+      title: "Reto táctico",
+      range: "15M a 20M",
+      items: [
+        { name: "Valla invicta", desc: "Mantener la valla invicta." },
+        { name: "Sin tarjetas", desc: "Terminar el partido sin tarjetas." },
+        { name: "Posesión +58%", desc: "Terminar con más de 58% de posesión." },
+        { name: "Gol sub-23", desc: "Gol con un jugador menor de 23 años." },
+      ],
+    },
+    epic: {
+      title: "Reto épico",
+      range: "25M a 40M",
+      items: [
+        { name: "Remontada heroica", desc: "Dar vuelta el partido." },
+        { name: "Gol de tiro libre", desc: "Anotar de tiro libre." },
+        { name: "Gol de defensor", desc: "Gol con un central o lateral." },
+        { name: "Gol de suplente", desc: "Gol de un jugador que entró desde el banco." },
+        { name: "Goleada", desc: "Ganar por 3 goles o más." },
+      ],
+    },
+    loco: {
+      title: "Reto loco",
+      range: "30M a 60M",
+      items: [
+        { name: "Cambio de Roles", desc: "Delantero de arquero y arquero de delantero durante 20 minutos.", prize: "35M" },
+        { name: "Chino Recoba", desc: "Gol olímpico.", prize: "50M" },
+        { name: "Lusail", desc: "Ganar con 2 o más expulsados.", prize: "50M" },
+        { name: "Rogério Ceni", desc: "Gol de tiro libre, penal o jugada con el arquero.", prize: "45M" },
+        { name: "Equipo B", desc: "Ganar alineando 11 suplentes.", prize: "40M" },
+        { name: "Fútbol Rústico", desc: "Ganar o empatar cometiendo 10 o más faltas.", prize: "30M" },
+        { name: "La Manita", desc: "Ganar exactamente 5-0.", prize: "45M" },
+        { name: "Messi", desc: "Ganar anotando solo goles de penal.", prize: "40M" },
+        { name: "CR7 (hat-trick perfecto)", desc: "Gol de zurda, de derecha y de cabeza con el mismo jugador.", prize: "60M o +1 punto de mejora directo" },
+      ],
+    },
+  };
+
+  // ───────── Elementos ─────────
+  const wheelEl = document.getElementById("wheel");
+  const spinBtn = document.getElementById("spinBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const titleEl = document.getElementById("stageTitle");
+  const subEl = document.getElementById("stageSub");
+  const resultEl = document.getElementById("result");
+  const SPIN_MS = 5200;
+
+  let rotation = 0;
+  let spinning = false;
+  let stage = 1; // 1 = tipo de reto, 2 = reto concreto, 3 = terminado
+  let category = null;
+  let current = []; // segmentos de la ruleta activa
+
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  // Aleatorio uniforme [0, 1)
+  function rand() {
+    const a = new Uint32Array(1);
+    crypto.getRandomValues(a);
+    return a[0] / 2 ** 32;
+  }
+
+  // ───────── Dibujo de la ruleta (SVG) ─────────
+  const R = 200;
+  const polar = (deg, r) => {
+    const a = ((deg - 90) * Math.PI) / 180;
+    return [R + r * Math.cos(a), R + r * Math.sin(a)];
+  };
+
+  function drawWheel(segments) {
+    current = segments;
+    const n = segments.length;
+    const step = 360 / n;
+    const fontSize = n <= 4 ? 21 : n <= 5 ? 17 : 13.5;
+
+    let paths = "";
+    let labels = "";
+
+    segments.forEach((s, i) => {
+      const a0 = i * step;
+      const a1 = (i + 1) * step;
+      const [x0, y0] = polar(a0, R);
+      const [x1, y1] = polar(a1, R);
+      const large = step > 180 ? 1 : 0;
+      const fill =
+        s.color ?? (i % 2 === 0 ? "#6be040" : "#4fc22e");
+      paths += `<path d="M${R} ${R} L${x0} ${y0} A${R} ${R} 0 ${large} 1 ${x1} ${y1} Z" fill="${fill}" stroke="#0a1a08" stroke-width="3"/>`;
+
+      const mid = a0 + step / 2;
+      const color = s.text ?? "#12360a";
+      labels += `<text transform="rotate(${mid - 90} ${R} ${R}) translate(${R + R - 18} ${R})" text-anchor="end" dominant-baseline="central" font-size="${fontSize}" font-weight="800" fill="${color}">${s.label}</text>`;
+    });
+
+    wheelEl.innerHTML = `<svg viewBox="0 0 ${R * 2} ${R * 2}" role="img" aria-label="Ruleta">${paths}${labels}<circle cx="${R}" cy="${R}" r="${R - 1.5}" fill="none" stroke="#2f7d1d" stroke-width="3"/></svg>`;
+  }
+
+  // Gira hasta que el segmento `index` quede bajo la flecha (arriba)
+  function spinTo(index) {
+    const n = current.length;
+    const step = 360 / n;
+    const jitter = (rand() - 0.5) * step * 0.7;
+    const target = (((360 - (index * step + step / 2 + jitter)) % 360) + 360) % 360;
+    const now = ((rotation % 360) + 360) % 360;
+    const delta = ((target - now + 360) % 360) + 360 * (5 + Math.floor(rand() * 3));
+    rotation += delta;
+    wheelEl.style.transition = reduceMotion
+      ? "none"
+      : `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.6, 0.1, 1)`;
+    wheelEl.style.transform = `rotate(${rotation}deg)`;
+    return reduceMotion ? 0 : SPIN_MS;
+  }
+
+  function resetWheelPosition() {
+    wheelEl.style.transition = "none";
+    rotation = 0;
+    wheelEl.style.transform = "rotate(0deg)";
+    void wheelEl.offsetWidth; // fuerza reflow
+  }
+
+  // ───────── Resultados ─────────
+  function showResult({ cat, name, desc, prize }) {
+    document.getElementById("resultCat").textContent = cat;
+    document.getElementById("resultName").textContent = name;
+    document.getElementById("resultDesc").textContent = desc ?? "";
+    document.getElementById("resultPrize").textContent = prize ?? "";
+    resultEl.hidden = false;
+    resultEl.classList.remove("pop");
+    void resultEl.offsetWidth;
+    resultEl.classList.add("pop");
+  }
+
+  function setStage1() {
+    stage = 1;
+    category = null;
+    resultEl.hidden = true;
+    resetBtn.hidden = true;
+    spinBtn.hidden = false;
+    spinBtn.disabled = false;
+    spinBtn.textContent = "Girar";
+    titleEl.textContent = "Ruleta de la jornada";
+    subEl.textContent = "Primero se sortea el tipo de reto";
+    resetWheelPosition();
+    drawWheel(CATEGORIES);
+  }
+
+  function setStage2(catId) {
+    const data = CHALLENGES[catId];
+    stage = 2;
+    category = catId;
+    titleEl.textContent = data.title;
+    subEl.textContent = `Premio: ${data.range}. Ahora se sortea cuál.`;
+    resetWheelPosition();
+    drawWheel(data.items.map((it) => ({ label: it.name })));
+    spinBtn.hidden = false;
+    spinBtn.disabled = false;
+    spinBtn.textContent = "Girar segunda ruleta";
+  }
+
+  spinBtn.addEventListener("click", () => {
+    if (spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    resultEl.hidden = true;
+
+    const index = Math.floor(rand() * current.length);
+    const wait = spinTo(index);
+
+    setTimeout(() => {
+      spinning = false;
+
+      if (stage === 1) {
+        const picked = CATEGORIES[index];
+        if (picked.id === "none") {
+          stage = 3;
+          spinBtn.hidden = true;
+          resetBtn.hidden = false;
+          subEl.textContent = "Esta fecha no hay reto";
+          showResult({
+            cat: "Resultado",
+            name: "Sin reto",
+            desc: "Nadie compite por premio de reto en esta jornada.",
+          });
+          return;
+        }
+        showResult({
+          cat: "Salió",
+          name: picked.label,
+          desc: `Premio: ${CHALLENGES[picked.id].range}`,
+        });
+        spinBtn.hidden = true;
+        setTimeout(() => setStage2(picked.id), reduceMotion ? 0 : 1800);
+        return;
+      }
+
+      // Etapa 2: reto concreto
+      const data = CHALLENGES[category];
+      const item = data.items[index];
+      stage = 3;
+      spinBtn.hidden = true;
+      resetBtn.hidden = false;
+      subEl.textContent = "Reto de la jornada definido";
+      showResult({
+        cat: data.title,
+        name: item.name,
+        desc: item.desc,
+        prize: `Premio: ${item.prize ?? data.range}. En efectivo o ítem de la Tienda.`,
+      });
+    }, wait + 150);
+  });
+
+  resetBtn.addEventListener("click", setStage1);
+
+  setStage1();
+</script>
+
+<style>
+  .ruleta-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1.5rem 4rem;
+    text-align: center;
+  }
+  h1 {
+    margin: 0;
+  }
+  .stage-sub {
+    margin: 0.4rem 0 1.5rem;
+    color: var(--secondary-color);
+  }
+
+  .wheel-box {
+    position: relative;
+    width: min(88vw, 30rem);
+    aspect-ratio: 1;
+  }
+  .wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    will-change: transform;
+    box-shadow:
+      0 0 3rem rgb(38 226 0 / 0.18),
+      inset 0 0 1.5rem rgb(0 0 0 / 0.5);
+  }
+  .wheel :global(svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .wheel :global(text) {
+    font-family: inherit;
+  }
+  .hub {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #0a1a08;
+    border: 3px solid #2f7d1d;
+  }
+  .pointer {
+    position: absolute;
+    top: -0.9rem;
+    left: 50%;
+    z-index: 2;
+    width: 1.6rem;
+    height: 2.2rem;
+    transform: translateX(-50%);
+    background: #3b8fd9; /* azul del diseño */
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.6));
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    min-height: 3rem;
+  }
+  .btn-main,
+  .btn-ghost {
+    padding: 0.8rem 1.8rem;
+    border-radius: 0.5rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition:
+      filter 0.15s ease,
+      transform 0.15s ease;
+  }
+  .btn-main {
+    border: none;
+    background: var(--main-color);
+    color: var(--bg-color);
+  }
+  .btn-main:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+  .btn-main:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .btn-main:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+  .btn-ghost {
+    border: 1px solid var(--main-color);
+    background: transparent;
+    color: var(--main-color);
+  }
+  [hidden] {
+    display: none !important;
+  }
+
+  .result {
+    width: min(92vw, 30rem);
+    margin-top: 1.5rem;
+    padding: 1.4rem 1.5rem;
+    border: 1px solid var(--main-color);
+    border-radius: 1rem;
+    background: rgb(4 17 8 / 0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .result.pop {
+    animation: pop 0.35s ease-out;
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(0.6rem) scale(0.97);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .result.pop {
+      animation: none;
+    }
+  }
+  .result-cat {
+    margin: 0;
+    color: var(--secondary-color);
+  }
+  .result h2 {
+    margin: 0.3rem 0 0.6rem;
+    font-size: 1.8rem;
+    color: var(--main-color);
+  }
+  .result-desc {
+    margin: 0;
+  }
+  .result-prize {
+    margin: 0.8rem 0 0;
+    font-weight: 700;
+  }
+  .result-prize:empty {
+    display: none;
+  }
+
+  .back {
+    margin-top: 2rem;
+    color: var(--main-color);
+  }
+
+  .blur,
+  .blur2 {
+    position: fixed;
+    top: 0;
+    width: 2rem;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      to right,
+      var(--bg-color) 0%,
+      rgba(255, 255, 255, 0)
+    );
+  }
+  .blur {
+    left: 0;
+  }
+  .blur2 {
+    right: 0;
+    background: linear-gradient(
+      to left,
+      var(--bg-color) 0%,
+      rgba(255, 255, 255, 0)
+    );
+  }
+</style>
