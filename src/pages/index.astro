@@ -2,602 +2,453 @@
 import Layout from "../layouts/Layout.astro";
 import { supabase } from "../lib/supabase.js";
 
-// Supabase devuelve máximo 1000 filas por consulta, así que paginamos
-const players = [];
-const pageSize = 1000;
-for (let from = 0; ; from += pageSize) {
-  const { data, error } = await supabase
-    .from("players")
-    .select(
-      "id, name, market_value, image_url, owner_team_id, for_sale, auction_ends_at",
-    )
+// ───────── Mercado: fecha de cierre ─────────
+const { data: win } = await supabase
+  .from("market_window")
+  .select("closes_at, status")
+  .eq("id", 1)
+  .single();
 
-    .order("market_value", { ascending: false })
-    .order("id")
-    .range(from, from + pageSize - 1);
+const closesAt = win?.status === "open" ? win.closes_at : null;
 
-  if (error) throw error;
-  players.push(...data);
-  if (data.length < pageSize) break;
+const deadlineLabel = closesAt
+  ? new Intl.DateTimeFormat("es-UY", {
+      day: "numeric",
+      month: "long",
+      timeZone: "America/Montevideo",
+    }).format(new Date(closesAt))
+  : null;
+
+// Mismo texto que arma el script del cliente, así no parpadea al cargar
+function leftText(ms) {
+  if (ms <= 0) return "Mercado cerrado";
+  const h = Math.floor(ms / 3600000);
+  if (h >= 1) return `${h} ${h === 1 ? "hora" : "horas"}`;
+  const m = Math.max(1, Math.floor(ms / 60000));
+  return `${m} ${m === 1 ? "minuto" : "minutos"}`;
 }
+const initialLeft = closesAt
+  ? leftText(new Date(closesAt).getTime() - Date.now())
+  : "Cerrado";
+
+// ───────── Tabla de posiciones (temporada más reciente) ─────────
+const { data: latest } = await supabase
+  .from("team_seasons")
+  .select("season")
+  .order("season", { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+const { data: standings } = await supabase
+  .from("standings")
+  .select("team_id, name, position")
+  .order("position");
+
+const rows = standings ?? [];
+const seasonLabel = "Season 2";
 ---
 
 <Layout title="Liga Picante">
-  <dialog id="authModal">
-    <h2 id="authTitle">Iniciar sesión</h2>
-    <form id="authForm">
-      <input type="text" id="authName" placeholder="Nombre" hidden />
-      <input type="email" id="authEmail" placeholder="Mail" required />
-      <input
-        type="password"
-        id="authPassword"
-        placeholder="Contraseña"
-        minlength="6"
-        required
-      />
-      <p id="authError" class="auth-error"></p>
-      <button type="submit" id="authSubmit">Entrar</button>
-    </form>
-    <button type="button" id="authToggle" class="auth-link">
-      ¿No tenés cuenta? Registrate
-    </button>
-  </dialog>
-
-  <dialog id="offerModal">
-    <div class="offer-banner" id="offerBanner">
-      <span id="offerBannerLabel">Faltan:</span>
-      <strong id="offerEnds"></strong>
-    </div>
-
-    <div class="offer-card">
-      <button type="button" id="offerClose" class="offer-x" aria-label="Cerrar">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.6"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <line x1="5" y1="5" x2="19" y2="19"></line>
-          <line x1="19" y1="5" x2="5" y2="19"></line>
-        </svg>
-      </button>
-
-      <header class="offer-head">
-        <img id="offerImg" class="offer-img" alt="" />
-        <div>
-          <h2 id="offerPlayer"></h2>
-          <p class="offer-value">Valor: <strong id="offerValue"></strong></p>
+  <main class="home">
+    <!-- Columna izquierda -->
+    <div class="col">
+      <a href="/mercado" class="card market">
+        <div class="market-top">
+          <h2>Mercado de fichajes</h2>
+          {deadlineLabel && <p>Fecha límite: {deadlineLabel}</p>}
         </div>
-      </header>
 
-      <div class="offer-info">
-        <p class="offer-line">
-          Oferta actual: <strong id="offerCurrent"></strong>
-        </p>
-        <p class="offer-line big">
-          Presupuesto actual: <strong id="offerBudget"></strong>
-        </p>
+        <div class="market-time">
+          <span>Faltan:</span>
+          <strong id="marketLeft" data-closes={closesAt ?? ""}>
+            {initialLeft}
+          </strong>
+        </div>
+
+        <div class="market-go">
+          <span>Realizar ofertas</span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M5 19 19 5"></path>
+            <path d="M8 5h11v11"></path>
+          </svg>
+        </div>
+      </a>
+
+      <div class="pair">
+        <a href="/reglas" class="card tile">
+          <svg
+            class="tile-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3 4.5 6v5.5c0 4.4 3 8 7.5 9.5 4.5-1.5 7.5-5.1 7.5-9.5V6z"
+            ></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <h3>Reglas</h3>
+        </a>
+        <a href="/mi-equipo" class="card tile">
+          <svg
+            class="tile-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="3"></circle>
+            <circle cx="5.5" cy="10" r="2"></circle>
+            <circle cx="18.5" cy="10" r="2"></circle>
+            <path d="M6.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"></path>
+          </svg>
+          <h3>Mi equipo</h3>
+        </a>
       </div>
 
-      <form id="offerForm">
-        <input
-          type="text"
-          id="offerAmount"
-          inputmode="numeric"
-          autocomplete="off"
-          required
-        />
-        <p class="offer-hint" id="offerHint"></p>
-        <p class="offer-error" id="offerError"></p>
-        <button type="submit" id="offerSubmit">Ofertar</button>
-      </form>
-
-      <button type="button" id="offerCancel" class="offer-cancel" hidden>
-        Retirar mi oferta
-      </button>
+      <div class="card brand">Liga Picante</div>
     </div>
-  </dialog>
 
-  <section class="content-main">
-    <div class="search-container">
-      <input type="text" id="searchInput" placeholder="Buscar jugador..." />
-      <svg
-        class="search-icon"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Jugador</th>
-            <th>Valor</th>
-            <th>Equipo</th>
-            <th>Oferta</th>
-          </tr>
-        </thead>
-        <tbody id="playersTable">
+    <!-- Columna derecha -->
+    <div class="col">
+      <section class="standings" aria-label="Tabla de posiciones">
+        <ol>
           {
-            players.map((player) => (
-              <tr>
-                <td>
-                  <div class="player-cell">
-                    <img
-                      src={player.image_url ?? "/player-placeholder.svg"}
-                      alt={player.name}
-                      class="player-image"
-                    />
-                    <span>{player.name}</span>
-                  </div>
-                </td>
-                <td>
-                  {new Intl.NumberFormat("es-ES", {
-                    style: "currency",
-                    currency: "EUR",
-                    maximumFractionDigits: 0,
-                  })
-                    .format(player.market_value)
-                    .replace(/\./g, ".\u200B")}
-                </td>
-                <td data-team-cell>Sin equipo</td>
-                <td
-                  class="offer-cell"
-                  data-player-id={player.id}
-                  data-name={player.name}
-                  data-min={player.market_value}
-                  data-owner={player.owner_team_id ?? ""}
-                  data-for-sale={player.for_sale ? "1" : ""}
-                  data-ends={player.auction_ends_at ?? ""}
+            rows.length ? (
+              rows.map((t, i) => (
+                <li
+                  class:list={[
+                    { first: i === 0, last: i === rows.length - 1 && rows.length > 1 },
+                  ]}
                 >
-                  <div class="offer-placeholder" data-offer-empty>
-                    —
-                  </div>
-                  <div class="offer-winner" data-offer-winner hidden>
-                    <strong data-offer-team />
-                    <span data-offer-amount />
-                  </div>
-                </td>
-              </tr>
-            ))
+                  <span class="pos">{t.position}°</span>
+                  <span class="team">{t.name}</span>
+                </li>
+              ))
+            ) : (
+              <li class="empty">Todavía no hay posiciones</li>
+            )
           }
-        </tbody>
-      </table>
+        </ol>
+        <div class="season"><span>{seasonLabel}</span></div>
+      </section>
+
+      <div class="pair pair-wide">
+        <a href="/fixture" class="card tile fixture">
+          <h3>Fixture</h3>
+        </a>
+        <a href="/ruleta" class="roulette" aria-label="Ruleta de retos">
+          <span class="roulette-core">Ruleta</span>
+        </a>
+      </div>
+
+      <a href="/apuestas" class="card tile bets">
+        <h3>Apuestas</h3>
+      </a>
     </div>
-  </section>
+  </main>
   <div class="blur"></div>
   <div class="blur2"></div>
-  <div class="blur3"></div>
 </Layout>
 
 <script>
-  import { supabase } from "../lib/supabase.js";
+  const el = document.getElementById("marketLeft");
+  const closes = el?.dataset.closes;
 
-  const modal = document.getElementById("authModal");
-  const form = document.getElementById("authForm");
-  const title = document.getElementById("authTitle");
-  const nameInput = document.getElementById("authName");
-  const emailInput = document.getElementById("authEmail");
-  const passInput = document.getElementById("authPassword");
-  const errorEl = document.getElementById("authError");
-  const submitBtn = document.getElementById("authSubmit");
-  const toggleBtn = document.getElementById("authToggle");
-
-  let isRegister = false;
-
-  // Que no se pueda cerrar con Esc
-  modal.addEventListener("cancel", (e) => e.preventDefault());
-
-  toggleBtn.addEventListener("click", () => {
-    isRegister = !isRegister;
-    title.textContent = isRegister ? "Crear cuenta" : "Iniciar sesión";
-    submitBtn.textContent = isRegister ? "Registrarme" : "Entrar";
-    toggleBtn.textContent = isRegister
-      ? "¿Ya tenés cuenta? Iniciá sesión"
-      : "¿No tenés cuenta? Registrate";
-    nameInput.hidden = !isRegister;
-    nameInput.required = isRegister;
-    errorEl.textContent = "";
-  });
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errorEl.textContent = "";
-
-    const email = emailInput.value;
-    const password = passInput.value;
-
-    const { error } = isRegister
-      ? await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name: nameInput.value } },
-        })
-      : await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) errorEl.textContent = error.message;
-  });
-
-  // Abre o cierra el modal según haya sesión
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (session) modal.close();
-    else if (!modal.open) modal.showModal();
-  });
-
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) modal.showModal();
-</script>
-<script>
-  import { supabase } from "../lib/supabase.js";
-
-  const table = document.getElementById("playersTable");
-  const modal = document.getElementById("offerModal");
-  const form = document.getElementById("offerForm");
-  const amountInput = document.getElementById("offerAmount");
-  const errorEl = document.getElementById("offerError");
-  const submitBtn = document.getElementById("offerSubmit");
-  const cancelBtn = document.getElementById("offerCancel");
-
-  // Tabla: "¢ 1.000.000". Popup: "$ 1.000.000" (como en el diseño)
-  const fmt = (n) => "¢" + Number(n).toLocaleString("es-UY");
-  const dotted = (n) =>
-    Number(n)
-      .toString()
-      .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  const money = (n) => "$ " + dotted(n);
-
-  const top = new Map(); // player_id -> { amount, teamId }
-  const teamNames = new Map(); // team_id -> nombre
-  let myTeamId = null;
-  let started = false;
-  let openPlayerId = null;
-  let myBudget = 0;
-  let windowEnd = null;
-  let endsTimer = null;
-
-  const endOf = (cell) => cell.dataset.ends || windowEnd;
-
-  // "30 Días, 1 hora y 20 minutos". Los segundos solo aparecen en la última hora
-  function untilText(ms) {
-    const s = Math.max(0, Math.floor(ms / 1000));
-    const d = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    const unit = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-
-    const parts = [];
-    if (d) parts.push(unit(d, "Día", "Días"));
-    if (h) parts.push(unit(h, "hora", "horas"));
-    if (m) parts.push(unit(m, "minuto", "minutos"));
-    if (s < 3600) parts.push(unit(sec, "segundo", "segundos"));
-
-    return parts.length > 1
-      ? `${parts.slice(0, -1).join(", ")} y ${parts[parts.length - 1]}`
-      : parts[0];
+  function leftText(ms) {
+    if (ms <= 0) return "Mercado cerrado";
+    const h = Math.floor(ms / 3600000);
+    if (h >= 1) return `${h} ${h === 1 ? "hora" : "horas"}`;
+    const m = Math.max(1, Math.floor(ms / 60000));
+    return `${m} ${m === 1 ? "minuto" : "minutos"}`;
   }
 
-  function tickEnds(cell) {
-    clearInterval(endsTimer);
-    const banner = document.getElementById("offerBanner");
-    const label = document.getElementById("offerBannerLabel");
-    const el = document.getElementById("offerEnds");
-
+  if (el && closes) {
+    const end = new Date(closes).getTime();
     const paint = () => {
-      const end = endOf(cell);
-      banner.classList.remove("urgent", "closed");
-
-      if (!end) {
-        label.textContent = "Sin fecha de cierre";
-        el.textContent = "";
-        return;
-      }
-
-      const ms = new Date(end).getTime() - Date.now();
-      if (ms <= 0) {
-        label.textContent = "Subasta cerrada";
-        el.textContent = "";
-        banner.classList.add("closed");
-        return;
-      }
-
-      label.textContent = "Faltan:";
-      el.textContent = untilText(ms);
-      // Últimos 2 minutos: zona de anti-sniping
-      if (ms <= 120000) banner.classList.add("urgent");
+      el.textContent = leftText(end - Date.now());
     };
-
     paint();
-    endsTimer = setInterval(paint, 1000);
+    setInterval(paint, 30000);
   }
-
-  async function refreshBudget() {
-    if (!myTeamId) return;
-    const { data } = await supabase
-      .from("teams")
-      .select("budget")
-      .eq("id", myTeamId)
-      .single();
-    myBudget = data?.budget ?? 0;
-    document.getElementById("offerBudget").textContent = money(myBudget);
-  }
-
-  const cellOf = (id) => table.querySelector(`[data-player-id="${id}"]`);
-
-  // Solo ofertan usuarios con equipo, y no por jugadores de su propio equipo
-  const canBid = (cell) => {
-    if (myTeamId === null) return false;
-    const owner = cell.dataset.owner ? Number(cell.dataset.owner) : null;
-    if (owner === myTeamId) return false;
-    return owner === null || cell.dataset.forSale === "1";
-  };
-
-  // Paso de subida: 500.000 si el jugador vale menos de 10M, 1.000.000 si no
-  const stepOf = (value) => (value < 10_000_000 ? 500_000 : 1_000_000);
-
-  // Oferta mínima: el valor de mercado, o la oferta actual más el paso
-  function minFor(cell) {
-    const base = Number(cell.dataset.min);
-    const cur = top.get(Number(cell.dataset.playerId));
-    return cur ? cur.amount + stepOf(base) : base;
-  }
-
-  function fillModal(cell) {
-    const cur = top.get(Number(cell.dataset.playerId));
-    const min = minFor(cell);
-    document.getElementById("offerCurrent").textContent = cur
-      ? `${money(cur.amount)} · ${teamNames.get(cur.teamId) ?? "Equipo"}`
-      : "Sin ofertas";
-    amountInput.placeholder = money(min);
-    const step = stepOf(Number(cell.dataset.min));
-    document.getElementById("offerHint").textContent = cur
-      ? `Mínimo: ${money(min)} (de a ${money(step)})`
-      : `Mínimo: ${money(min)}`;
-    cancelBtn.hidden = !(cur && cur.teamId === myTeamId);
-    tickEnds(cell);
-  }
-
-  function openModal(cell) {
-    openPlayerId = Number(cell.dataset.playerId);
-    document.getElementById("offerPlayer").textContent = cell.dataset.name;
-    document.getElementById("offerValue").textContent = dotted(
-      cell.dataset.min,
-    );
-    const img = document.getElementById("offerImg");
-    img.src = cell.closest("tr").querySelector("img")?.src ?? "";
-    img.alt = cell.dataset.name;
-    amountInput.value = "";
-    errorEl.textContent = "";
-    fillModal(cell);
-    modal.showModal();
-  }
-
-  // El campo se escribe como "$ 180.000.000" mientras tipeás
-  amountInput.addEventListener("input", () => {
-    const digits = amountInput.value.replace(/\D/g, "");
-    amountInput.value = digits ? "$ " + dotted(digits) : "";
-  });
-
-  amountInput.addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
-    e.preventDefault();
-    const cell = cellOf(openPlayerId);
-    const step = stepOf(Number(cell.dataset.min));
-    const min = minFor(cell);
-    const typed = Number(amountInput.value.replace(/\D/g, ""));
-    const current = typed || min - step;
-    const next =
-      e.key === "ArrowUp" ? current + step : Math.max(min, current - step);
-    amountInput.value = "$ " + dotted(next);
-  });
-
-  modal.addEventListener("close", () => {
-    openPlayerId = null;
-    clearInterval(endsTimer);
-  });
-  document
-    .getElementById("offerClose")
-    .addEventListener("click", () => modal.close());
-
-  // Clic en el fondo oscuro cierra el popup
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.close();
-  });
-
-  function renderOwner(cell) {
-    const teamCell = cell.closest("tr").querySelector("[data-team-cell]");
-    const owner = cell.dataset.owner ? Number(cell.dataset.owner) : null;
-    const name = owner ? (teamNames.get(owner) ?? "Sin equipo") : "Sin equipo";
-    teamCell.textContent =
-      owner && cell.dataset.forSale === "1" ? `${name} · En venta` : name;
-  }
-
-  function render(playerId, flash = false) {
-    const cell = cellOf(playerId);
-    if (!cell) return;
-    renderOwner(cell);
-
-    const cur = top.get(playerId);
-    const empty = cell.querySelector("[data-offer-empty]");
-    const winner = cell.querySelector("[data-offer-winner]");
-
-    cell.classList.toggle("can-bid", canBid(cell));
-    cell.closest("tr").classList.toggle("has-offer", !!cur);
-
-    if (cur) {
-      empty.hidden = true;
-      winner.hidden = false;
-      cell.querySelector("[data-offer-team]").textContent =
-        teamNames.get(cur.teamId) ?? "Equipo";
-      cell.querySelector("[data-offer-amount]").textContent = fmt(cur.amount);
-    } else {
-      winner.hidden = true;
-      empty.hidden = false;
-      empty.textContent = canBid(cell) ? "Ofertar" : "—";
-    }
-
-    if (flash) {
-      cell.classList.add("offer-flash");
-      setTimeout(() => cell.classList.remove("offer-flash"), 1500);
-    }
-    // Si el popup está abierto sobre este jugador, se actualiza en vivo
-    if (modal.open && openPlayerId === playerId) fillModal(cell);
-  }
-
-  async function loadOffers() {
-    const { data: offers } = await supabase
-      .from("offers")
-      .select("player_id, team_id, amount");
-
-    const next = new Map();
-    for (const o of offers ?? []) {
-      const cur = next.get(o.player_id);
-      if (!cur || o.amount > cur.amount) {
-        next.set(o.player_id, { amount: o.amount, teamId: o.team_id });
-      }
-    }
-
-    const changed = [...new Set([...top.keys(), ...next.keys()])].filter(
-      (id) => {
-        const a = top.get(id);
-        const b = next.get(id);
-        return a?.amount !== b?.amount || a?.teamId !== b?.teamId;
-      },
-    );
-
-    top.clear();
-    next.forEach((v, k) => top.set(k, v));
-    return changed;
-  }
-
-  async function start(session) {
-    if (started || !session) return;
-    started = true;
-
-    const [{ data: profile }, { data: teams }, { data: w }] = await Promise.all(
-      [
-        supabase
-          .from("profiles")
-          .select("team_id")
-          .eq("id", session.user.id)
-          .single(),
-        supabase.from("teams").select("id, name"),
-        supabase
-          .from("market_window")
-          .select("closes_at, status")
-          .eq("id", 1)
-          .single(),
-      ],
-    );
-
-    myTeamId = profile?.team_id ?? null;
-    (teams ?? []).forEach((t) => teamNames.set(t.id, t.name));
-    windowEnd = w?.status === "open" ? w.closes_at : null;
-    await refreshBudget();
-
-    await loadOffers();
-    table
-      .querySelectorAll("[data-player-id]")
-      .forEach((cell) => render(Number(cell.dataset.playerId)));
-
-    supabase
-      .channel("offers-live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "offers" },
-        ({ new: o }) => {
-          const cur = top.get(o.player_id);
-          if (!cur || o.amount > cur.amount) {
-            top.set(o.player_id, { amount: o.amount, teamId: o.team_id });
-            render(o.player_id, true);
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "offers" },
-        async () => {
-          const changed = await loadOffers();
-          changed.forEach((id) => render(id, true));
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "players" },
-        ({ new: p }) => {
-          const cell = cellOf(p.id);
-          if (!cell) return;
-          cell.dataset.owner = p.owner_team_id ?? "";
-          cell.dataset.forSale = p.for_sale ? "1" : "";
-          cell.dataset.ends = p.auction_ends_at ?? "";
-          render(p.id, true);
-        },
-      )
-      .subscribe();
-  }
-
-  // Clic en la celda -> abre el popup
-  table.addEventListener("click", (e) => {
-    const cell = e.target.closest("[data-player-id]");
-    if (cell && cell.classList.contains("can-bid")) openModal(cell);
-  });
-
-  // Ofertar
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errorEl.textContent = "";
-    submitBtn.disabled = true;
-
-    const { error } = await supabase.rpc("place_offer", {
-      p_player_id: openPlayerId,
-      p_amount: Number(amountInput.value.replace(/\D/g, "")),
-    });
-
-    submitBtn.disabled = false;
-    if (error) errorEl.textContent = error.message;
-    else {
-      modal.close();
-      refreshBudget();
-    }
-  });
-
-  // Retirar mi oferta
-  cancelBtn.addEventListener("click", async () => {
-    errorEl.textContent = "";
-    cancelBtn.disabled = true;
-
-    const { error } = await supabase.rpc("cancel_offer", {
-      p_player_id: openPlayerId,
-    });
-
-    cancelBtn.disabled = false;
-    if (error) {
-      errorEl.textContent = error.message;
-      return;
-    }
-    modal.close();
-    const changed = await loadOffers();
-    await refreshBudget();
-    changed.forEach((id) => render(id));
-  });
-
-  const { data } = await supabase.auth.getSession();
-  start(data.session);
-  supabase.auth.onAuthStateChange((_e, session) => start(session));
 </script>
-<script type="module" src="/js/search.js"></script>
+
 <style>
+  .home {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 62rem;
+    margin: 2rem auto 4rem;
+    padding-inline: 1.5rem;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    min-width: 0;
+  }
+
+  .card {
+    display: block;
+    border: 1px solid color-mix(in srgb, var(--main-color) 45%, transparent);
+    border-radius: 1.1rem;
+    background: rgb(4 17 8 / 0.55);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    text-decoration: none;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease;
+  }
+  a.card:hover {
+    border-color: var(--main-color);
+    background: rgb(4 17 8 / 0.8);
+  }
+  a:focus-visible {
+    outline: 2px solid var(--main-color);
+    outline-offset: 3px;
+  }
+
+  /* Mercado */
+  .market {
+    display: flex;
+    flex-direction: column;
+    min-height: 25rem;
+    overflow: hidden;
+    border: 3px solid #3b8fd9;
+    border-radius: 1.3rem;
+    background: rgb(2 10 4 / 0.75);
+  }
+  a.market:hover {
+    border-color: #5aa8ee;
+  }
+  .market-top {
+    padding: 2.7rem 1.6rem 1.4rem;
+  }
+  .market-top h2 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+    line-height: 1.1;
+    text-transform: uppercase;
+    color: var(--complementary-color, #ff3b24);
+  }
+  .market-top p {
+    margin: 0.5rem 0 0;
+    font-size: 1rem;
+  }
+  .market-time {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    background: rgb(150 156 150 / 0.4);
+    text-align: center;
+  }
+  .market-time span {
+    font-size: 2.2rem;
+    font-weight: 300;
+    line-height: 1.1;
+  }
+  .market-time strong {
+    font-size: 2.3rem;
+    line-height: 1.15;
+  }
+  .market-go {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: auto;
+    padding: 1.4rem 1.2rem;
+    font-weight: 300;
+    font-size: 1.1rem;
+  }
+  .market-go svg {
+    width: 1.8rem;
+    height: 1.8rem;
+    color: var(--main-color);
+  }
+
+  /* Tiles */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem;
+  }
+  .pair-wide {
+    grid-template-columns: 1.55fr 1fr;
+    align-items: center;
+  }
+  .tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 9.6rem;
+  }
+  .tile h3 {
+    margin: 0;
+    font-size: 1.8rem;
+  }
+  .tile-icon {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.2rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--main-color);
+  }
+  .bets {
+    min-height: 9.6rem;
+  }
+  .bets h3 {
+    font-size: 2.2rem;
+  }
+  .brand {
+    padding: 0.9rem;
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--main-color);
+  }
+
+  /* Posiciones */
+  .standings {
+    display: grid;
+    grid-template-columns: 1fr 3.4rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--main-color) 55%, transparent);
+    border-radius: 1.1rem;
+    background: rgb(2 10 4 / 0.8);
+  }
+  .standings ol {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .standings li {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-height: 3.3rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--main-color) 35%, transparent);
+    font-weight: 700;
+  }
+  .standings li:last-child {
+    border-bottom: none;
+  }
+  .pos {
+    flex: 0 0 3.8rem;
+    align-self: stretch;
+    display: grid;
+    place-items: center start;
+    padding-left: 1rem;
+    border-right: 1px solid color-mix(in srgb, var(--main-color) 35%, transparent);
+    font-size: 1.4rem;
+  }
+  .team {
+    padding-left: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .standings li.first {
+    background: linear-gradient(90deg, #6be040, #4fc22e);
+    color: #0a1a08;
+  }
+  .standings li.first .pos {
+    border-right-color: rgb(0 0 0 / 0.25);
+  }
+  .standings li.last {
+    background: rgb(100 12 8 / 0.8);
+  }
+  .standings .empty {
+    justify-content: center;
+    padding: 1.5rem;
+    font-weight: 400;
+    color: var(--secondary-color);
+  }
+  .season {
+    display: grid;
+    place-items: center;
+    border-left: 1px solid color-mix(in srgb, var(--main-color) 35%, transparent);
+    background: #020a04;
+  }
+  .season span {
+    writing-mode: vertical-rl;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--main-color);
+    text-shadow: 0 0 0.9rem color-mix(in srgb, var(--main-color) 70%, transparent);
+  }
+
+  /* Ruleta */
+  .roulette {
+    position: relative;
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    width: min(100%, 8.8rem);
+    aspect-ratio: 1;
+    border: 2px solid color-mix(in srgb, var(--main-color) 70%, transparent);
+    border-radius: 50%;
+    background:
+      linear-gradient(var(--main-color), var(--main-color)) center / 2px 100% no-repeat,
+      linear-gradient(var(--main-color), var(--main-color)) center / 100% 2px no-repeat,
+      rgb(4 17 8 / 0.6);
+    text-decoration: none;
+    transition: transform 0.25s ease;
+  }
+  .roulette:hover {
+    transform: rotate(40deg);
+  }
+  .roulette-core {
+    display: grid;
+    place-items: center;
+    width: 52%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--main-color);
+    color: var(--complementary-color, #ff3b24);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .roulette:hover .roulette-core {
+    transform: rotate(-40deg);
+    transition: transform 0.25s ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .roulette,
+    .roulette:hover,
+    .roulette:hover .roulette-core {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* Bordes difuminados, como en el resto del sitio */
   .blur,
   .blur2 {
     position: fixed;
@@ -605,11 +456,15 @@ for (let from = 0; ; from += pageSize) {
     width: 2rem;
     height: 100%;
     z-index: 1;
+    pointer-events: none;
     background: linear-gradient(
       to right,
       var(--bg-color) 0%,
       rgba(255, 255, 255, 0)
     );
+  }
+  .blur {
+    left: 0;
   }
   .blur2 {
     right: 0;
@@ -619,487 +474,15 @@ for (let from = 0; ; from += pageSize) {
       rgba(255, 255, 255, 0)
     );
   }
-  .blur {
-    left: 0;
-  }
-  .blur3 {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 5rem;
-    z-index: 1;
-    pointer-events: none;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    -webkit-mask-image: linear-gradient(to top, black 0%, transparent 100%);
-    mask-image: linear-gradient(to top, black 0%, transparent 100%);
-  }
-  .content-main {
-    padding-inline: 10rem;
-  }
-  tr {
-    padding: 10rem;
-  }
-  table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: separate;
-    border-spacing: 0 0.75rem; /* separación vertical entre filas */
-  }
-  thead {
-    background: var(--black-color);
-  }
-  th,
-  td {
-    padding: 1rem 0.75rem;
-    border: 0.5px solid var(--secondary-color);
-    border-right-width: 0; /* el borde izquierdo de cada celda hace de divisor */
-    text-align: center;
-    vertical-align: middle;
-  }
-  th:first-child,
-  td:first-child {
-    border-radius: 0.5rem 0 0 0.5rem;
-  }
-  th:last-child,
-  td:last-child {
-    border-right-width: 1px;
-    border-radius: 0 0.5rem 0.5rem 0;
-  }
-  .player-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-align: left;
-  }
-  .player-image {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-  }
-  .table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-  }
-  .search-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 1rem 0 1.5rem;
-    padding: 0.75rem 1rem;
-    border: 0.5px solid var(--secondary-color);
-    border-radius: 0.5rem;
-    background-color: var(--black-color);
-    color: var(--main-color);
-  }
-  .search-container:focus-within {
-    box-shadow: 0 0 0 2px rgb(38 226 0 / 0.25);
-  }
-  #searchInput {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: white;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 0.9rem;
-  }
-  #searchInput::placeholder {
-    color: var(--secondary-color);
-  }
-  .search-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-    flex-shrink: 0;
-  }
-  @media (max-width: 768px) {
-    #playersTable {
-      font-size: 12px;
+
+  @media (max-width: 52rem) {
+    .home {
+      grid-template-columns: 1fr;
+      margin-top: 1rem;
+      padding-inline: 5rem;
     }
-    .content-main {
-      padding-inline: 0;
+    .market {
+      min-height: 21rem;
     }
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-      padding-inline: 1.5rem;
-      box-sizing: border-box;
-    }
-    table {
-      width: 100%;
-      min-width: 50rem;
-      table-layout: fixed;
-      border-collapse: separate;
-      border-spacing: 0 0.75rem;
-    }
-    h1 {
-      padding-inline: 1.5rem;
-    }
-    .search-container {
-      margin-inline: 1.5rem;
-    }
-  }
-
-  dialog {
-    background: var(--bg-color);
-    color: white;
-    border: 1px solid var(--main-color);
-    border-radius: 0.5rem;
-    padding: 2rem;
-    width: min(90vw, 24rem);
-  }
-  dialog::backdrop {
-    background: rgb(0 0 0 / 0.8);
-  }
-  dialog form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  dialog input {
-    padding: 0.75rem;
-    border: 1px solid var(--secondary-color);
-    border-radius: 0.5rem;
-    background: transparent;
-    color: white;
-    font-family: inherit;
-  }
-  dialog button[type="submit"] {
-    padding: 0.75rem;
-    border: none;
-    border-radius: 0.5rem;
-    background: var(--main-color);
-    color: var(--bg-color);
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .auth-link {
-    margin-top: 1rem;
-    background: none;
-    border: none;
-    color: var(--main-color);
-    cursor: pointer;
-  }
-  .auth-error {
-    color: var(--complementary-color);
-    min-height: 1.2em;
-    margin: 0;
-  }
-  .offer-cell {
-    cursor: default;
-  }
-  .offer-cell.can-bid {
-    cursor: pointer;
-    font-size: 1.5rem;
-    transition: all 0.2s ease;
-  }
-  .offer-cell.can-bid:hover {
-    background: var(--black-color);
-  }
-  .offer-placeholder {
-    color: var(--secondary-color);
-  }
-  .can-bid .offer-placeholder {
-    color: var(--main-color);
-  }
-  .offer-winner {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  /* Fila con puja activa */
-  tr.has-offer td {
-    background: rgb(38 226 0 / 0.15);
-  }
-
-  .offer-flash {
-    animation: offerFlash 1.5s ease;
-  }
-  @keyframes offerFlash {
-    from {
-      background: rgb(38 226 0 / 0.5);
-    }
-  }
-
-  /* ───────── Popup de oferta ─────────
-     Todo el tamaño se mide en cqw (% del ancho del popup),
-     así que se ve igual en celular y en escritorio. */
-  #offerModal {
-    --w: min(92vw, 30rem);
-    --offer-green: var(--main-color, #6be040);
-    container-type: inline-size;
-    width: var(--w);
-    max-width: none;
-    max-height: none;
-    padding: 0;
-    overflow: visible;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    color: #fff;
-  }
-  #offerModal[open] {
-    display: flex;
-    flex-direction: column;
-    gap: calc(var(--w) * 0.046);
-    animation: offerIn 0.22s ease-out;
-  }
-  #offerModal::backdrop {
-    background: rgb(2 4 10 / 0.78);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
-  }
-  @keyframes offerIn {
-    from {
-      opacity: 0;
-      transform: translateY(0.75rem) scale(0.98);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    #offerModal[open] {
-      animation: none;
-    }
-  }
-
-  /* Cartel de cuenta regresiva */
-  .offer-banner {
-    padding: 3.4cqw 4cqw;
-    border: 1px solid var(--offer-green);
-    border-radius: 3cqw;
-    background: color-mix(in srgb, var(--offer-green) 16%, rgb(40 46 44 / 0.7));
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    text-align: center;
-    font-size: 4.5cqw;
-    line-height: 1.2;
-    color: color-mix(in srgb, var(--offer-green) 80%, #1b2a14);
-  }
-  .offer-banner strong {
-    font-weight: 700;
-    color: var(--offer-green);
-  }
-  .offer-banner.urgent {
-    border-color: #f2c230;
-    background: color-mix(in srgb, #f2c230 14%, rgb(40 46 44 / 0.7));
-    color: #f2c230;
-  }
-  .offer-banner.urgent strong {
-    color: #f2c230;
-  }
-  .offer-banner.closed {
-    border-color: var(--complementary-color, #ff5a4a);
-    color: var(--complementary-color, #ff5a4a);
-  }
-
-  /* Tarjeta */
-  .offer-card {
-    position: relative;
-    overflow: hidden;
-    padding: 6.7cqw 5.8cqw 11cqw;
-    border: 1px solid var(--offer-green);
-    border-radius: 7cqw;
-    background:
-      radial-gradient(
-        90% 45% at 50% 100%,
-        color-mix(in srgb, var(--offer-green) 30%, transparent),
-        transparent 75%
-      ),
-      #0a0c15;
-    box-shadow: 0 0 6cqw color-mix(in srgb, var(--offer-green) 14%, transparent);
-  }
-  /* Textura de grano sutil */
-  .offer-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0.07;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-
-  .offer-x {
-    position: absolute;
-    top: 3.5cqw;
-    right: 4.2cqw;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    width: 7.7cqw;
-    height: 7.7cqw;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-    background: rgb(150 156 150 / 0.4);
-    color: #0a0c15;
-    cursor: pointer;
-    transition: background 0.2s ease;
-  }
-  .offer-x:hover {
-    background: rgb(180 186 180 / 0.55);
-  }
-  .offer-x svg {
-    width: 42%;
-    height: 42%;
-  }
-
-  .offer-head {
-    display: flex;
-    align-items: center;
-    gap: 5.5cqw;
-    padding-right: 9cqw;
-  }
-  .offer-img {
-    width: 19.5cqw;
-    height: 19.5cqw;
-    flex-shrink: 0;
-    border: 1px solid var(--offer-green);
-    border-radius: 50%;
-    background: #151a22;
-    object-fit: cover;
-  }
-  .offer-head h2 {
-    margin: 0;
-    font-size: 7cqw;
-    font-weight: 700;
-    line-height: 1.1;
-    text-align: left;
-  }
-  .offer-value {
-    margin: 1cqw 0 0;
-    font-size: 4.6cqw;
-    font-weight: 400;
-  }
-  .offer-value strong,
-  .offer-line strong {
-    font-weight: 700;
-    color: #fff;
-  }
-
-  .offer-info {
-    display: grid;
-    gap: 3.5cqw;
-    margin-top: 8.5cqw;
-  }
-  .offer-line {
-    margin: 0;
-    font-size: 5cqw;
-    font-weight: 400;
-    color: rgb(255 255 255 / 0.92);
-  }
-  .offer-line.big {
-    font-size: 5.4cqw;
-  }
-
-  #offerModal form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    margin-top: 9cqw;
-  }
-  #offerModal input {
-    box-sizing: border-box;
-    width: 65cqw;
-    height: 13cqw;
-    padding: 0 4cqw;
-    border: 1px solid var(--offer-green);
-    border-radius: 2cqw;
-    background: #0d0f1b;
-    color: #fff;
-    font: inherit;
-    font-size: 5.3cqw;
-  }
-  #offerModal input::placeholder {
-    color: rgb(255 255 255 / 0.28);
-  }
-  #offerModal input:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.6cqw
-      color-mix(in srgb, var(--offer-green) 35%, transparent);
-  }
-  .offer-hint {
-    margin: 2.5cqw 0 0;
-    font-size: 3.6cqw;
-    text-align: center;
-    color: rgb(255 255 255 / 0.5);
-  }
-  .offer-error {
-    margin: 2cqw 0 0;
-    font-size: 3.8cqw;
-    text-align: center;
-    color: var(--complementary-color, #ff5a4a);
-  }
-  .offer-error:empty {
-    display: none;
-  }
-  #offerModal button[type="submit"] {
-    width: 44cqw;
-    height: 13cqw;
-    margin-top: 6cqw;
-    padding: 0;
-    border: none;
-    border-radius: 1.6cqw;
-    background: var(--offer-green);
-    color: #07090a;
-    font: inherit;
-    font-size: 5.3cqw;
-    font-weight: 700;
-    cursor: pointer;
-    transition:
-      transform 0.15s ease,
-      filter 0.15s ease;
-  }
-  #offerModal button[type="submit"]:hover {
-    filter: brightness(1.08);
-  }
-  #offerModal button[type="submit"]:active {
-    transform: scale(0.98);
-  }
-  #offerModal button[type="submit"]:disabled {
-    opacity: 0.55;
-    cursor: wait;
-  }
-
-  .offer-cancel {
-    display: block;
-    width: 44cqw;
-    height: 10cqw;
-    margin: 4cqw auto 0;
-    padding: 0;
-    border: 1px solid var(--complementary-color, #ff5a4a);
-    border-radius: 1.6cqw;
-    background: transparent;
-    color: var(--complementary-color, #ff5a4a);
-    font: inherit;
-    font-size: 4cqw;
-    cursor: pointer;
-  }
-  .offer-cancel[hidden] {
-    display: none;
-  }
-  .offer-cancel:disabled {
-    opacity: 0.5;
-    cursor: wait;
-  }
-
-  tr {
-    font-weight: bold;
-    font-size: 1.2rem;
-  }
-  tbody td {
-    background: rgb(
-      4 17 8 / 0.35
-    ); /* tinte semitransparente, sin esto el blur casi no se nota */
-    -webkit-backdrop-filter: blur(5px); /* Safari */
-    backdrop-filter: blur(5px);
   }
 </style>
-<!-- comentario -->
-<!-- comentario -->
