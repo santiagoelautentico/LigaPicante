@@ -342,11 +342,14 @@ for (let from = 0; ; from += pageSize) {
     return owner === null || cell.dataset.forSale === "1";
   };
 
-  // Oferta mínima: valor de mercado, o la oferta actual + 1 si es mayor
+  // Paso de subida: 500.000 si el jugador vale menos de 10M, 1.000.000 si no
+  const stepOf = (value) => (value < 10_000_000 ? 500_000 : 1_000_000);
+
+  // Oferta mínima: el valor de mercado, o la oferta actual más el paso
   function minFor(cell) {
     const base = Number(cell.dataset.min);
     const cur = top.get(Number(cell.dataset.playerId));
-    return cur ? Math.max(base, cur.amount + 1) : base;
+    return cur ? cur.amount + stepOf(base) : base;
   }
 
   function fillModal(cell) {
@@ -356,8 +359,10 @@ for (let from = 0; ; from += pageSize) {
       ? `${money(cur.amount)} · ${teamNames.get(cur.teamId) ?? "Equipo"}`
       : "Sin ofertas";
     amountInput.placeholder = money(min);
-    document.getElementById("offerHint").textContent =
-      `Mínimo: ${money(min)}`;
+    const step = stepOf(Number(cell.dataset.min));
+    document.getElementById("offerHint").textContent = cur
+      ? `Mínimo: ${money(min)} (de a ${money(step)})`
+      : `Mínimo: ${money(min)}`;
     cancelBtn.hidden = !(cur && cur.teamId === myTeamId);
     tickEnds(cell);
   }
@@ -381,6 +386,19 @@ for (let from = 0; ; from += pageSize) {
   amountInput.addEventListener("input", () => {
     const digits = amountInput.value.replace(/\D/g, "");
     amountInput.value = digits ? "$ " + dotted(digits) : "";
+  });
+
+  amountInput.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const cell = cellOf(openPlayerId);
+    const step = stepOf(Number(cell.dataset.min));
+    const min = minFor(cell);
+    const typed = Number(amountInput.value.replace(/\D/g, ""));
+    const current = typed || min - step;
+    const next =
+      e.key === "ArrowUp" ? current + step : Math.max(min, current - step);
+    amountInput.value = "$ " + dotted(next);
   });
 
   modal.addEventListener("close", () => {
@@ -767,7 +785,6 @@ for (let from = 0; ; from += pageSize) {
   }
   .offer-cell.can-bid:hover {
     background: var(--black-color);
-
   }
   .offer-placeholder {
     color: var(--secondary-color);

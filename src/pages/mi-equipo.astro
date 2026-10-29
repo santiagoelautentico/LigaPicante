@@ -13,6 +13,14 @@ import Layout from "../layouts/Layout.astro";
       <div class="budget" data-team-budget></div>
 
       <h2 class="squad-title">
+        Ofertas activas - <span class="squad-count" data-bids-count></span>
+      </h2>
+      <ul class="squad" data-bids></ul>
+      <p class="empty-note" data-bids-empty hidden>
+        No tenés ofertas activas.
+      </p>
+
+      <h2 class="squad-title">
         Plantilla - <span class="squad-count" data-team-count></span>
       </h2>
       <ul class="squad" data-team-players></ul>
@@ -36,10 +44,30 @@ import Layout from "../layouts/Layout.astro";
   const budgetEl = document.querySelector("[data-team-budget]");
   const countEl = document.querySelector("[data-team-count]");
   const playersEl = document.querySelector("[data-team-players]");
+  const bidsEl = document.querySelector("[data-bids]");
+  const bidsCountEl = document.querySelector("[data-bids-count]");
+  const bidsEmptyEl = document.querySelector("[data-bids-empty]");
   const picker = document.querySelector("[data-team-picker]");
   const optionsEl = document.querySelector("[data-team-options]");
   const errorEl = document.querySelector("[data-team-error]");
   const saleErrorEl = document.querySelector("[data-sale-error]");
+
+  const money = (n) => `¢${Number(n).toLocaleString("es-UY")}`;
+  let windowEnd = null;
+
+  // "Cierra en 1h 5m", "Cierra en 4m 30s", "Subasta cerrada"
+  function timeLeft(iso) {
+    if (!iso) return "Sin fecha de cierre";
+    const s = Math.floor((new Date(iso).getTime() - Date.now()) / 1000);
+    if (s <= 0) return "Subasta cerrada";
+    const d = Math.floor(s / 86400);
+    const h = Math.floor((s % 86400) / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = String(s % 60).padStart(2, "0");
+    if (d) return `Cierra en ${d}d ${h}h ${m}m`;
+    if (h) return `Cierra en ${h}h ${m}m`;
+    return `Cierra en ${m}m ${sec}s`;
+  }
 
   async function refreshBudget(teamId) {
     const { data } = await supabase
@@ -47,7 +75,71 @@ import Layout from "../layouts/Layout.astro";
       .select("budget")
       .eq("id", teamId)
       .single();
-    budgetEl.textContent = `¢${Number(data?.budget ?? 0).toLocaleString("es-UY")}`;
+    budgetEl.textContent = money(data?.budget ?? 0);
+  }
+
+  // Jugadores por los que mi equipo tiene la oferta más alta en este momento
+  async function loadBids(teamId) {
+    const { data: offers } = await supabase
+      .from("offers")
+      .select("player_id, amount")
+      .eq("team_id", teamId);
+
+    const list = [...(offers ?? [])].sort((a, b) => b.amount - a.amount);
+    bidsEl.replaceChildren();
+    bidsEmptyEl.hidden = list.length > 0;
+
+    if (!list.length) {
+      bidsCountEl.textContent = "";
+      return;
+    }
+
+    const { data: players } = await supabase
+      .from("players")
+      .select("id, name, image_url, market_value, auction_ends_at")
+      .in(
+        "id",
+        list.map((o) => o.player_id),
+      );
+
+    const byId = new Map((players ?? []).map((p) => [p.id, p]));
+    const total = list.reduce((sum, o) => sum + Number(o.amount), 0);
+    bidsCountEl.textContent = `${list.length} ${list.length === 1 ? "jugador" : "jugadores"}, ${money(total)} comprometidos`;
+
+    for (const o of list) {
+      const p = byId.get(o.player_id);
+      if (!p) continue;
+
+      const li = document.createElement("li");
+
+      const img = document.createElement("img");
+      img.src = p.image_url ?? "/player-placeholder.svg";
+      img.alt = p.name;
+
+      const info = document.createElement("div");
+      info.className = "squad-info";
+      const name = document.createElement("span");
+      name.textContent = p.name;
+      const meta = document.createElement("span");
+      meta.className = "bid-meta";
+      meta.textContent = `Valor ${money(p.market_value)}`;
+      const ends = document.createElement("span");
+      ends.className = "bid-meta bid-ends";
+      ends.dataset.ends = p.auction_ends_at ?? windowEnd ?? "";
+      ends.textContent = timeLeft(ends.dataset.ends);
+      info.append(name, meta, ends);
+
+      const side = document.createElement("div");
+      side.className = "bid-side";
+      const amount = document.createElement("strong");
+      amount.textContent = money(o.amount);
+      const label = document.createElement("small");
+      label.textContent = "Tu oferta";
+      side.append(amount, label);
+
+      li.append(img, info, side);
+      bidsEl.append(li);
+    }
   }
 
   async function loadSquad(teamId) {
@@ -84,7 +176,7 @@ import Layout from "../layouts/Layout.astro";
       btn.type = "button";
       btn.className = "sale-btn" + (p.for_sale ? " on" : "");
 
-      const amount = `¢${Number(p.market_value).toLocaleString("es-UY")}`;
+      const amount = money(p.market_value);
       btn.textContent = p.for_sale
         ? `Quitar de la venta (-${amount})`
         : `Poner en venta (+${amount})`;
@@ -117,15 +209,62 @@ import Layout from "../layouts/Layout.astro";
     viewEl.hidden = false;
     nameEl.textContent = me.team.name;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("name")
-      .eq("id", (await supabase.auth.getUser()).data.user.id)
-      .single();
+    const [{ data: profile }, { data: w }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", (await supabase.auth.getUser()).data.user.id)
+        .single(),
+      supabase
+        .from("market_window")
+        .select("closes_at, status")
+        .eq("id", 1)
+        .single(),
+    ]);
 
     ownerEl.textContent = profile?.name ?? "";
-    await refreshBudget(me.team.id);
-    await loadSquad(me.team.id);
+    windowEnd = w?.status === "open" ? w.closes_at : null;
+
+    const teamId = me.team.id;
+    await Promise.all([
+      refreshBudget(teamId),
+      loadBids(teamId),
+      loadSquad(teamId),
+    ]);
+
+    // Cuenta regresiva de cada oferta
+    setInterval(() => {
+      document.querySelectorAll(".bid-ends").forEach((el) => {
+        el.textContent = timeLeft(el.dataset.ends);
+      });
+    }, 1000);
+
+    // En vivo: te superan, ofertás desde otra pestaña o se cierra la subasta
+    let refreshTimer;
+    const refreshAll = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        Promise.all([
+          refreshBudget(teamId),
+          loadBids(teamId),
+          loadSquad(teamId),
+        ]);
+      }, 300);
+    };
+
+    supabase
+      .channel("mi-equipo-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "offers" },
+        refreshAll,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "players" },
+        refreshAll,
+      )
+      .subscribe();
   } else {
     nameEl.textContent = "Todavía no tenés equipo";
     picker.hidden = false;
@@ -183,6 +322,10 @@ import Layout from "../layouts/Layout.astro";
   }
   .squad-count {
     font-size: 0.9rem;
+    color: var(--secondary-color);
+  }
+  .empty-note {
+    margin: 0;
     color: var(--secondary-color);
   }
   .squad {
@@ -270,5 +413,26 @@ import Layout from "../layouts/Layout.astro";
   .squad :global(.sale-btn:disabled) {
     opacity: 0.5;
     cursor: wait;
+  }
+
+  /* Ofertas activas */
+  .squad :global(.bid-meta) {
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+  }
+  .squad :global(.bid-side) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+    gap: 0.1rem;
+  }
+  .squad :global(.bid-side strong) {
+    font-size: 1.1rem;
+    color: var(--main-color);
+  }
+  .squad :global(.bid-side small) {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
   }
 </style>
