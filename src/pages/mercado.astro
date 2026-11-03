@@ -259,6 +259,7 @@ for (let from = 0; ; from += pageSize) {
 
   const top = new Map(); // player_id -> { amount, teamId }
   const teamNames = new Map(); // team_id -> nombre
+  const mine = new Set();
   let myTeamId = null;
   let started = false;
   let openPlayerId = null;
@@ -356,6 +357,7 @@ for (let from = 0; ; from += pageSize) {
   function fillModal(cell) {
     const cur = top.get(Number(cell.dataset.playerId));
     const min = minFor(cell);
+    cancelBtn.hidden = !mine.has(Number(cell.dataset.playerId));
     document.getElementById("offerCurrent").textContent = cur
       ? `${money(cur.amount)} · ${teamNames.get(cur.teamId) ?? "Equipo"}`
       : "Sin ofertas";
@@ -364,7 +366,6 @@ for (let from = 0; ; from += pageSize) {
     document.getElementById("offerHint").textContent = cur
       ? `Mínimo: ${money(min)} (de a ${money(step)})`
       : `Mínimo: ${money(min)}`;
-    cancelBtn.hidden = !(cur && cur.teamId === myTeamId);
     tickEnds(cell);
   }
 
@@ -459,6 +460,10 @@ for (let from = 0; ; from += pageSize) {
     const { data: offers } = await supabase
       .from("offers")
       .select("player_id, team_id, amount");
+    mine.clear();
+    for (const o of offers ?? []) {
+      if (o.team_id === myTeamId) mine.add(o.player_id);
+    }
 
     const next = new Map();
     for (const o of offers ?? []) {
@@ -518,6 +523,7 @@ for (let from = 0; ; from += pageSize) {
         { event: "INSERT", schema: "public", table: "offers" },
         ({ new: o }) => {
           const cur = top.get(o.player_id);
+          if (o.team_id === myTeamId) mine.add(o.player_id);
           if (!cur || o.amount > cur.amount) {
             top.set(o.player_id, { amount: o.amount, teamId: o.team_id });
             render(o.player_id, true);
@@ -1102,5 +1108,6 @@ for (let from = 0; ; from += pageSize) {
     backdrop-filter: blur(5px);
   }
 </style>
+<!-- comentario -->
 <!-- comentario -->
 <!-- comentario -->
